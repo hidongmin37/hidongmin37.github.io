@@ -1,42 +1,116 @@
----
-layout: default
----
-
-{% if page.header.overlay_color or page.header.overlay_image or page.header.image %}
-  {% include page__hero.html %}
-{% endif %}
-
-{% if page.url != "/" and site.breadcrumbs %}
-  {% unless paginator %}
-    {% include breadcrumbs.html %}
-  {% endunless %}
-{% endif %}
-
-<div id="main" role="main">
-  {% include sidebar.html %}
-
-  <div class="archive">
-    {% unless page.header.overlay_color or page.header.overlay_image %}
-      <h1 id="page-title" class="page__title"{% if page.locale %} lang="{{ page.locale }}"{% endif %}>{{ page.title }}</h1>
-    {% endunless %}
-
-    {{ content }}
-
-    {%- assign search_provider = site.search_provider | default: "lunr" -%}
-    {%- case search_provider -%}
-      {%- when "lunr" -%}
-        <input type="text" id="search" class="search-input" placeholder="{{ site.data.ui-text[site.locale].search_placeholder_text | default: 'Enter your search term...' }}" />
-        <div id="results" class="results"></div>
-      {%- when "google" -%}
-        <form onsubmit="return googleCustomSearchExecute();" id="cse-search-box-form-id">
-        <input type="text" id="cse-search-input-box-id" class="search-input" placeholder="{{ site.data.ui-text[site.locale].search_placeholder_text | default: 'Enter your search term...' }}" />
-        </form>
-        <div id="results" class="results">
-          <gcse:searchresults-only></gcse:searchresults-only>
-        </div>
-      {%- when "algolia" -%}
-        <div class="search-searchbar"></div>
-        <div class="search-hits"></div>
-    {%- endcase -%}
-  </div>
+{%- when "lunr" -%}
+<div class="search-container">
+  <form action="#" method="get" class="search-form">
+    <input type="text" id="search-input" class="search-input" placeholder="{{ site.data.ui-text[site.locale].search_placeholder_text | default: 'Enter your search term...' }}" />
+    <button type="submit" class="search-submit">
+      <i class="fas fa-search"></i>
+    </button>
+  </form>
+  <div id="results" class="results"></div>
 </div>
+
+<script src="https://unpkg.com/simple-jekyll-search@latest/dest/simple-jekyll-search.min.js"></script>
+<script>
+  SimpleJekyllSearch({
+    searchInput: document.getElementById('search-input'),
+    resultsContainer: document.getElementById('results'),
+    json: '{{ "/search.json" | relative_url }}',
+    searchResultTemplate: '<div class="search-result"><a href="{url}"><h3>{title}</h3><p>{date}</p></a></div>',
+    noResultsText: '<div class="no-results">{{ site.data.ui-text[site.locale].search_no_results_text | default: "No results found" }}</div>',
+    limit: 10,
+    fuzzy: false
+  });
+
+  document.querySelector('.search-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+  });
+
+  document.getElementById('search-input').addEventListener('input', function() {
+    if (this.value.length > 0) {
+      document.getElementById('results').style.display = 'block';
+    } else {
+      document.getElementById('results').style.display = 'none';
+    }
+  });
+</script>
+
+<style>
+  .search-container {
+    position: relative;
+    max-width: 500px;
+    margin: 20px auto;
+  }
+
+  .search-form {
+    display: flex;
+    border: 2px solid #ddd;
+    border-radius: 30px;
+    overflow: hidden;
+  }
+
+  .search-input {
+    flex-grow: 1;
+    border: none;
+    padding: 10px 15px;
+    font-size: 16px;
+    outline: none;
+  }
+
+  .search-submit {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+
+  .search-submit:hover {
+    background: #0056b3;
+  }
+
+  .results-container {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    max-height: 400px;
+    overflow-y: auto;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    display: none;
+  }
+
+  .search-result {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+  }
+
+  .search-result:last-child {
+    border-bottom: none;
+  }
+
+  .search-result a {
+    text-decoration: none;
+    color: #333;
+  }
+
+  .search-result h3 {
+    margin: 0 0 5px;
+    font-size: 18px;
+  }
+
+  .search-result p {
+    margin: 0;
+    font-size: 14px;
+    color: #666;
+  }
+
+  .no-results {
+    padding: 10px;
+    text-align: center;
+    color: #666;
+  }
+</style>
