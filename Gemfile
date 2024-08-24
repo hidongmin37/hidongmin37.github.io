@@ -11,3 +11,8 @@ gem "jekyll-feed"
 gem "jekyll-include-cache"
 gem "jekyll-seo-tag"
 gem "csv"
+gem "jekyll-remote-theme"
+gem "kramdown-parser-gfm"
+gem "sass-embedded"
+
+

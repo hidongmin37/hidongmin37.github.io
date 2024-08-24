@@ -1,5 +1,7 @@
 //helper
-@use "sass:math";
+@use "sass:math" as math;
+
+
 @function breakpoint-to-base-em($value) {
   $value-unit: unit($value);
 
@@ -23,10 +25,10 @@
   $unit: unit($value);
 
   @if $unit == 'px' {
-    @return math.div($value, 16px) * 1em;
+    @return ($value / 16px) * 1em;
   }
   @else if $unit == '%' {
-    @return math.div($value, 100%) * 1em;
+    @return ($value/100%) * 1em;
   }
   @else if $unit == 'em' {
     @return $value;
