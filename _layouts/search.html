@@ -1,12 +1,113 @@
-{%- when "lunr" -%}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Improved Search Form</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #f4f4f4;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .search-container {
+      position: relative;
+      max-width: 600px;
+      width: 90%;
+    }
+    .search-form {
+      display: flex;
+      border-radius: 50px;
+      overflow: hidden;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      transition: all 0.3s ease;
+    }
+    .search-form:focus-within {
+      box-shadow: 0 6px 8px rgba(0,0,0,0.15);
+    }
+    .search-input {
+      flex-grow: 1;
+      border: none;
+      padding: 15px 25px;
+      font-size: 18px;
+      outline: none;
+      background-color: white;
+    }
+    .search-submit {
+      background: #333;
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+      font-size: 18px;
+    }
+    .search-submit:hover {
+      background: #555;
+    }
+    .search-submit i {
+      font-size: 20px;
+    }
+    #results {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border-radius: 0 0 15px 15px;
+      max-height: 400px;
+      overflow-y: auto;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      display: none;
+      margin-top: 10px;
+    }
+    .search-result {
+      padding: 15px;
+      border-bottom: 1px solid #eee;
+      transition: background 0.3s ease;
+    }
+    .search-result:hover {
+      background-color: #f9f9f9;
+    }
+    .search-result:last-child {
+      border-bottom: none;
+    }
+    .search-result a {
+      text-decoration: none;
+      color: #333;
+    }
+    .search-result h3 {
+      margin: 0 0 5px;
+      font-size: 18px;
+      color: #333;
+    }
+    .search-result p {
+      margin: 0;
+      font-size: 14px;
+      color: #666;
+    }
+    .no-results {
+      padding: 20px;
+      text-align: center;
+      color: #666;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
 <div class="search-container">
   <form action="#" method="get" class="search-form">
-    <input type="text" id="search-input" class="search-input" placeholder="{{ site.data.ui-text[site.locale].search_placeholder_text | default: 'Enter your search term...' }}" />
+    <input type="text" id="search-input" class="search-input" placeholder="Enter your search term..." />
     <button type="submit" class="search-submit">
       <i class="fas fa-search"></i>
     </button>
   </form>
-  <div id="results" class="results"></div>
+  <div id="results"></div>
 </div>
 
 <script src="https://unpkg.com/simple-jekyll-search@latest/dest/simple-jekyll-search.min.js"></script>
@@ -14,9 +115,9 @@
   SimpleJekyllSearch({
     searchInput: document.getElementById('search-input'),
     resultsContainer: document.getElementById('results'),
-    json: '{{ "/search.json" | relative_url }}',
+    json: '/search.json',
     searchResultTemplate: '<div class="search-result"><a href="{url}"><h3>{title}</h3><p>{date}</p></a></div>',
-    noResultsText: '<div class="no-results">{{ site.data.ui-text[site.locale].search_no_results_text | default: "No results found" }}</div>',
+    noResultsText: '<div class="no-results">No results found</div>',
     limit: 10,
     fuzzy: false
   });
@@ -33,84 +134,5 @@
     }
   });
 </script>
-
-<style>
-  .search-container {
-    position: relative;
-    max-width: 500px;
-    margin: 20px auto;
-  }
-
-  .search-form {
-    display: flex;
-    border: 2px solid #ddd;
-    border-radius: 30px;
-    overflow: hidden;
-  }
-
-  .search-input {
-    flex-grow: 1;
-    border: none;
-    padding: 10px 15px;
-    font-size: 16px;
-    outline: none;
-  }
-
-  .search-submit {
-    background: #007bff;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    cursor: pointer;
-    transition: background 0.3s ease;
-  }
-
-  .search-submit:hover {
-    background: #0056b3;
-  }
-
-  .results-container {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    background: white;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    max-height: 400px;
-    overflow-y: auto;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    display: none;
-  }
-
-  .search-result {
-    padding: 10px;
-    border-bottom: 1px solid #eee;
-  }
-
-  .search-result:last-child {
-    border-bottom: none;
-  }
-
-  .search-result a {
-    text-decoration: none;
-    color: #333;
-  }
-
-  .search-result h3 {
-    margin: 0 0 5px;
-    font-size: 18px;
-  }
-
-  .search-result p {
-    margin: 0;
-    font-size: 14px;
-    color: #666;
-  }
-
-  .no-results {
-    padding: 10px;
-    text-align: center;
-    color: #666;
-  }
-</style>
+</body>
+</html>
