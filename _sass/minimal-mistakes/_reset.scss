@@ -1,8 +1,6 @@
 /* ==========================================================================
    STYLE RESETS
    ========================================================================== */
-@use "sass:math";
-
 
 * { box-sizing: border-box; }
 
@@ -24,10 +22,8 @@ html {
     font-size: 22px;
   }
 
-  & {
-    -webkit-text-size-adjust: 100%;
-    -ms-text-size-adjust: 100%;
-  }
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
 }
 
 /* Remove margin */
@@ -157,8 +153,8 @@ button,
 html input[type="button"], // avoid the WebKit bug in Android 4.0.* where (2) destroys native `audio` and `video` controls
 input[type="reset"],
 input[type="submit"] {
-    -webkit-appearance: button; /* corrects inability to style clickable `input` types in iOS*/
-    cursor: pointer; /* improves usability and consistency of cursor style between image-type `input` and others*/
+  -webkit-appearance: button; /* corrects inability to style clickable `input` types in iOS*/
+  cursor: pointer; /* improves usability and consistency of cursor style between image-type `input` and others*/
 }
 
 label,
@@ -169,7 +165,7 @@ input[type="reset"],
 input[type="submit"],
 input[type="radio"],
 input[type="checkbox"] {
-    cursor: pointer; /* improves usability and consistency of cursor style between image-type `input` and others*/
+  cursor: pointer; /* improves usability and consistency of cursor style between image-type `input` and others*/
 }
 
 input[type="search"] { /* Appearance in Safari/Chrome*/

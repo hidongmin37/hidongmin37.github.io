@@ -1,6 +1,4 @@
----
-  layout: none
----
+
 
 // Initialize lunr index
 const idx = lunr(function () {
