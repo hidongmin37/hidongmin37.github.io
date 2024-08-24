@@ -1,10 +1,8 @@
-//////////////////////////////
-// Converts the input value to Base EMs
-//////////////////////////////
+//helper
+@use "sass:math";
 @function breakpoint-to-base-em($value) {
   $value-unit: unit($value);
 
-  // Will convert relative EMs into root EMs.
   @if breakpoint-get('base font size') and type-of(breakpoint-get('base font size')) == 'number' and $value-unit == 'em' {
     $base-unit: unit(breakpoint-get('base font size'));
 
@@ -25,10 +23,10 @@
   $unit: unit($value);
 
   @if $unit == 'px' {
-    @return $value / 16px * 1em;
+    @return math.div($value, 16px) * 1em;
   }
   @else if $unit == '%' {
-    @return $value / 100% * 1em;
+    @return math.div($value, 100%) * 1em;
   }
   @else if $unit == 'em' {
     @return $value;

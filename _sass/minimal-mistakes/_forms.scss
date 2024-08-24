@@ -1,6 +1,4 @@
-/* ==========================================================================
-   Forms
-   ========================================================================== */
+@use "sass:math";
 
 form {
   margin-bottom: 5px;
@@ -16,7 +14,7 @@ form {
   legend {
     display: block;
     width: 100%;
-    margin-bottom: 5px * 2;
+    margin-bottom: math.div(5px, 2);
     margin-inline-start: -7px;
     padding: 0;
     color: $text-color;
@@ -25,7 +23,7 @@ form {
   }
 
   p {
-    margin-bottom: (5px / 2);
+    margin-bottom: math.div(5px, 2);
   }
 
   ul {

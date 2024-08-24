@@ -201,6 +201,8 @@ defaults:
       comments: true
       share: true
       related: true
+    sidebar:
+      nav: "categories"
   # _pages
   - scope:
       path: "_pages"
@@ -253,6 +255,9 @@ defaults:
 sass:
   sass_dir: _sass
   style: compressed # http://sass-lang.com/documentation/file.SASS_REFERENCE.html#output_style
+  sourcemap: never
+  quiet_deps: true
+
 
 
 # Outputting

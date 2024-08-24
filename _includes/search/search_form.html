@@ -1,26 +1,29 @@
-<div class="search-content__inner-wrap">
+<div class="search-content__inner-wrap" style=" margin: 2em auto; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
   {%- assign search_provider = site.search_provider | default: "lunr" -%}
   {%- case search_provider -%}
   {%- when "lunr" -%}
-  <form class="search-content__form" onkeydown="return event.key != 'Enter';" role="search">
-    <label class="sr-only" for="search">
+  <form class="search-content__form" onkeydown="return event.key != 'Enter';" role="search" style="position: relative;">
+    <label class="sr-only" for="search" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;">
       {{ site.data.ui-text[site.locale].search_label_text | default: 'Enter your search term...' }}
     </label>
-    <input type="search" id="search" class="search-input" tabindex="-1" placeholder="{{ site.data.ui-text[site.locale].search_placeholder_text | default: 'Enter your search term...' }}" />
+    <input type="search" id="search" class="search-input" tabindex="-1" placeholder="{{ site.data.ui-text[site.locale].search_placeholder_text | default: 'Enter your search term...' }}" style="width: 100%; padding: 12px 50px 12px 15px; font-size: 16px; background-color: #f5f5f5; border: 2px solid #e0e0e0; border-radius: 25px; outline: none; transition: all 0.3s ease;" />
+
   </form>
-  <div id="results" class="results"></div>
-  {%- when "google" -%}
-  <form onsubmit="return googleCustomSearchExecute();" id="cse-search-box-form-id" role="search">
-    <label class="sr-only" for="cse-search-input-box-id">
-      {{ site.data.ui-text[site.locale].search_label_text | default: 'Enter your search term...' }}
-    </label>
-    <input type="search" id="cse-search-input-box-id" class="search-input" tabindex="-1" placeholder="{{ site.data.ui-text[site.locale].search_placeholder_text | default: 'Enter your search term...' }}" />
-  </form>
-  <div id="results" class="results">
-    <gcse:searchresults-only></gcse:searchresults-only>
-  </div>
-  {%- when "algolia" -%}
-  <div class="search-searchbar"></div>
-  <div class="search-hits"></div>
+  <div id="results" class="results" style="margin-top: 1em; padding: 1em; background: #ffffff; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);"></div>
   {%- endcase -%}
 </div>
+
+<style>
+  .search-content .archive__item{
+    width: 100%;
+  }
+  .search-input:focus {
+    background-color: #ffffff !important;
+    border-color: #4a90e2 !important;
+    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.3) !important;
+  }
+  .search-content__form button:hover svg {
+    fill: #4a90e2;
+  }
+
+</style>

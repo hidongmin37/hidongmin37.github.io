@@ -1,6 +1,9 @@
 /* ==========================================================================
    MASTHEAD
    ========================================================================== */
+//masthead
+
+@use "sass:math";
 
 .masthead {
   position: relative;
@@ -13,9 +16,8 @@
 
   &__inner-wrap {
     @include clearfix;
-    margin-inline: auto;
-    padding: 1em;
-    max-width: 100%;
+
+    // Move display properties above nested rules
     display: -webkit-box;
     display: -ms-flexbox;
     display: flex;
@@ -23,6 +25,10 @@
     -ms-flex-pack: justify;
     justify-content: space-between;
     font-family: $sans-serif-narrow;
+
+    margin-inline: auto;
+    padding: 1em;
+    max-width: 100%;
 
     @include breakpoint($x-large) {
       max-width: $max-width;
@@ -43,9 +49,11 @@
 }
 
 .site-title {
+  // Move display properties above nested rules
   display: -webkit-box;
   display: -ms-flexbox;
   display: flex;
+
   -ms-flex-item-align: center;
   align-self: center;
   font-weight: bold;

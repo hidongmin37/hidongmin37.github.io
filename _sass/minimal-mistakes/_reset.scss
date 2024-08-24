@@ -1,6 +1,8 @@
 /* ==========================================================================
    STYLE RESETS
    ========================================================================== */
+@use "sass:math";
+
 
 * { box-sizing: border-box; }
 
@@ -22,8 +24,10 @@ html {
     font-size: 22px;
   }
 
-  -webkit-text-size-adjust: 100%;
-  -ms-text-size-adjust: 100%;
+  & {
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+  }
 }
 
 /* Remove margin */
