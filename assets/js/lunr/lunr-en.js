@@ -120,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
           });
 
           // Display results
-          resultDiv.innerHTML = `<p class="results__found">${results.length} {{ site.data.ui-text[site.locale].results_found | default: "Result(s) found" }}</p>`;
+          resultDiv.innerHTML = `<p class="results__found">${results.length} Result(s) found</p>`;
           results.forEach((result) => {
             resultDiv.innerHTML += createSearchResult(result.ref);
           });
@@ -129,7 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Display results
-    resultDiv.innerHTML = `<p class="results__found">${results.length} {{ site.data.ui-text[site.locale].results_found | default: "Result(s) found" }}</p>`;
+    resultDiv.innerHTML = `<p class="results__found">${results.length} Result(s) found</p>`;
     results.forEach((result) => {
       resultDiv.innerHTML += createSearchResult(result.ref);
     });
