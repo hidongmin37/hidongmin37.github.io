@@ -1,4 +1,6 @@
-
+---
+  layout: none
+---
 
 // Initialize lunr index
 const idx = lunr(function () {
@@ -55,7 +57,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (term !== "") {
           q.term(term, { usePipeline: false, editDistance: 1, boost: 1 });
         }
-      })
+      });---
+        layout: none
+      ---
 
 // Initialize lunr index
       const idx = lunr(function () {
