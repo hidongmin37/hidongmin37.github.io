@@ -2,7 +2,16 @@
 layout: archive
 ---
 
-{{ content }}
+<% if site.disqus.shortname %>
+  {% include disqus.html %}
+<% endif %>
+<% else %>
+  {{ content }}
+  {% if site.disqus.shortname %}
+    {% include disqus.html %}
+  {% endif %}
+<% endif %>
+
 
 <ul class="taxonomy__index">
   {% assign postsInYear = site.posts | where_exp: "item", "item.hidden != true" | group_by_exp: 'post', 'post.date | date: "%Y"' %}

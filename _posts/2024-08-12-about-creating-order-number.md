@@ -1,6 +1,7 @@
 ---
 title: "주문 번호 생성에 대해서"
 date: 2024-08-12
+comments: true
 categories:
   - posts
 tags:

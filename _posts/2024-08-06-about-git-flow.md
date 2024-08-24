@@ -1,6 +1,7 @@
 ---
 title: "첫번째 글, 깃 플로우 전략에 관하여"
 date: 2024-08-06
+comments: true
 categories:
   - posts
 tags:

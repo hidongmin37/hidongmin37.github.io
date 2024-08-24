@@ -1,6 +1,7 @@
 ---
 title: "Transaction에서의 격리 수준에 대해서"
 date: 2024-08-09
+comments: true
 categories:
   - posts
 tags:

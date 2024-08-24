@@ -1,6 +1,7 @@
 ---
 title: "Trie 자료구조"
 date: 2024-08-08
+comments: true
 categories:
   - posts
 tags:

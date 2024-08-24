@@ -26,9 +26,9 @@ masthead_title           : # overrides the website title displayed in the masthe
 words_per_minute         : 200
 enable_copy_code_button  : true
 comments:
-  provider               : "false" # false (default), "disqus", "discourse", "facebook", "staticman_v2", "staticman", "utterances", "giscus", "custom"
+  provider               : "disqus" # false (default), "disqus", "discourse", "facebook", "staticman_v2", "staticman", "utterances", "giscus", "custom"
   disqus:
-    shortname            :
+    shortname            : dongminjang24 # Your Disqus shortname
   discourse:
     server               : # https://meta.discourse.org/t/embedding-discourse-comments-via-javascript/31963 , e.g.: meta.discourse.org
 #  facebook:
