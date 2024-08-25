@@ -170,34 +170,42 @@ public class PerformanceInterceptor implements HandlerInterceptor {
 
 
 ---
-Spring MVC 통합:
 
-인터셉터: HandlerMethod( Spring MVC에서 HTTP 요청을 처리하는 컨트롤러 메서드에 대한 메타데이터를 나타내는 클래스)를 사용하여 컨트롤러의 메서드 정보를 로깅할 수 있습니다. 이는 Spring MVC의 특정 기능입니다.
+**Spring MVC 통합**:
 
-필터: 필터에서는 HandlerMethod에 접근할 수 없습니다. 필터는 서블릿 수준에서 동작하기 때문입니다.
+**인터셉터**: HandlerMethod( Spring MVC에서 HTTP 요청을 처리하는 컨트롤러 메서드에 대한 메타데이터를 나타내는 클래스)를 사용하여 컨트롤러의 메서드 정보를 로깅할 수 있습니다. 이는 Spring MVC의 특정 기능입니다.
 
----
-실행 시점:
-
-인터셉터: preHandle, postHandle, afterCompletion 메서드를 통해 요청 처리의 여러 단계에 개입할 수 있습니다.
-
-필터: doFilter 메서드 하나만 있어, 요청 전후로만 로직을 추가할 수 있습니다.
+**필터**: 필터에서는 HandlerMethod에 접근할 수 없습니다. 필터는 서블릿 수준에서 동작하기 때문입니다.
 
 ---
-예외 처리:
+**실행 시점**:
 
-인터셉터: afterCompletion 메서드에서 예외 정보를 받아 처리할 수 있습니다.
-필터: 예외 정보를 직접 받지 못하며, try-catch로 감싸서 처리해야 합니다.
+**인터셉터**: preHandle, postHandle, afterCompletion 메서드를 통해 요청 처리의 여러 단계에 개입할 수 있습니다.
 
+**필터**: doFilter 메서드 하나만 있어, 요청 전후로만 로직을 추가할 수 있습니다.
 
-ModelAndView 접근:
-
-인터셉터: postHandle 메서드에서 ModelAndView에 접근할 수 있습니다.
-필터: ModelAndView에 접근할 수 없습니다.
 ---
+**예외 처리**:
+
+**인터셉터**: afterCompletion 메서드에서 예외 정보를 받아 처리할 수 있습니다.
+
+**필터**: 예외 정보를 직접 받지 못하며, try-catch로 감싸서 처리해야 합니다.
+
+---
+
+**ModelAndView 접근**:
+
+**인터셉터**: postHandle 메서드에서 ModelAndView에 접근할 수 있습니다.
+
+**필터**: ModelAndView에 접근할 수 없습니다.
+
+---
+
 <br>
 
 #### 면접을 봤을때 왜 필터가 아닌 인터셉터를 사용하셨냐고 물어보면 뭐라고 대답하는게 좋을까?
+
+<br>
 
 **Spring MVC와의 통합**:
 우리 프로젝트는 Spring MVC 기반으로 구축되어 있습니다. 인터셉터는 Spring MVC의 일부로, HandlerMethod를 통해 컨트롤러와 메서드에 대한 더 상세한 정보에 접근할 수 있습니다. 이를 통해 로깅, 보안 검사 등을 더 세밀하게 구현할 수 있었습니다.
@@ -216,7 +224,10 @@ afterCompletion 메서드에서 예외 정보를 직접 받아 처리할 수 있
 
 
 ---
+
 ####  반대로 왜 인터셉터가 아닌 필터를 선택했냐는 질문을 받았을때에는 어떻게 대답하는게 좋을까?
+
+<br>
 
 **광범위한 적용 범위**:
 필터는 서블릿 컨테이너 수준에서 작동하기 때문에, Spring의 DispatcherServlet에 도달하기 전에 모든 요청을 처리할 수 있습니다. 우리 프로젝트는 Spring MVC 뿐만 아니라 다른 서블릿 기반 요소들도 포함하고 있어, 모든 요청에 대해 일관된 처리가 필요했습니다.
