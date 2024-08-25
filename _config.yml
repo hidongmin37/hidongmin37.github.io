@@ -15,8 +15,8 @@ title                    : "Coco's Daddy"
 title_separator          : "-"
 subtitle                 : "Daddy of Coco, the Shiba Inu"
 name                     : &name "Dong Min Jang" # &name is a YAML anchor which can be *referenced later
-description              : &description "A flexible Jekyll theme for your blog or site with a minimalist aesthetic."
-# url                      : "https://dongminjang24.github.io" # the base hostname & protocol for your site e.g. "https://mmistakes.github.io"
+description              : &description "A Blog Where I Collect and Explore Technologies I Like and Am Curious About."
+url                      : "https://dongminjang24.github.io" # the base hostname & protocol for your site e.g. "https://mmistakes.github.io"
 # baseurl                  : "/dongmin-log" # the subpath of your site, e.g. "/blog"
 # repository               : "dongminjang24/dongminjang24.github.io"
 teaser                   : # path of fallback teaser image, e.g. "/assets/images/500x300.png"
@@ -323,3 +323,5 @@ compress_html:
   clippings: all
   ignore:
     envs: development
+
+favicon: "/assets/favicon/favicon.ico"

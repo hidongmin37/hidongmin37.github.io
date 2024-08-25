@@ -5,7 +5,8 @@
 // Initialize lunr index
 const idx = lunr(function () {
   this.field('title');
-  this.field('categories');
+  this.field('categories')
+  this.field('tags')
   this.ref('id');
 
   this.pipeline.remove(lunr.trimmer);
