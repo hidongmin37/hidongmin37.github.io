@@ -14,5 +14,7 @@ gem "csv"
 gem "jekyll-remote-theme"
 gem "kramdown-parser-gfm"
 gem "sass-embedded"
+gem 'jekyll-sitemap'
+
 
 
