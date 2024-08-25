@@ -4,4 +4,4 @@
 
 이메일📪: jangdm37@gmail.com
 
-<img src="/assets/coco.jpeg" alt="coco" itemprop="image">
+<img src="/assets/coco.png" alt="coco" itemprop="image">
