@@ -163,6 +163,12 @@ public class PerformanceInterceptor implements HandlerInterceptor {
 ### 필터 vs 인터셉터 📌
 <br>
 
+> **필터(Filter)** 는 특정 요청과 컨트롤러에 관계없이 전역적으로 처리해야 하는 작업이나 웹 어플리케이션에 전반적으로 사용되는 기능을 구현할 때 적용하고,<br>
+**인터셉터(Interceptor)** 는 클라이언트의 요청과 관련된 작업에 대해 추가적인 요구사항을 만족해야 할 때 적용한다.
+
+<img src="/assets/filter-inter/image2.png" alt="vs" itemprop="image">
+
+
 ---
 Spring MVC 통합:
 
@@ -236,3 +242,5 @@ afterCompletion 메서드에서 예외 정보를 직접 받아 처리할 수 있
 #### 참고사이트
 
 https://mozzi-devlog.tistory.com/9
+
+https://velog.io/@uiurihappy/Spring-%EC%9D%B8%ED%84%B0%EC%85%89%ED%84%B0Interceptor%EC%99%80-%ED%95%84%ED%84%B0Filter-%EC%B0%A8%EC%9D%B4
