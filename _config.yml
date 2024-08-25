@@ -326,3 +326,4 @@ compress_html:
 
 favicon: "/assets/favicon/favicon.ico"
 
+img_cdn: https://cdn.jsdelivr.net/gh/dongminjang24/dongminjang24.github.io@master
