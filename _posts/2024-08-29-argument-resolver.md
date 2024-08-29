@@ -1,6 +1,6 @@
 ---
 title: "필터와 인터셉터의 차이 그리고 로깅"
-date: 2024-08-25
+date: 2024-08-30
 comments: true
 categories:
   - posts
@@ -9,11 +9,6 @@ tags:
   - interceptor
   - coding
 ---
-
-
-<img src="/assets/filter-inter/image.png" alt="filter-inter" itemprop="image">
-
-
 
 <br>
 

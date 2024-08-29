@@ -6,3 +6,24 @@
 
 @import "minimal-mistakes/skins/{{ site.minimal_mistakes_skin | default: 'default' }}"; // skin
 @import "minimal-mistakes"; // main partials
+
+
+.category-list {
+  list-style-type: none;
+  padding: 0;
+  margin: 10px;
+}
+
+.category-list li {
+  margin-bottom: 5px;
+}
+
+.category-list a {
+  color: #333;
+  text-decoration: none;
+}
+
+.category-list a:hover {
+  color: #0000FF;
+  text-decoration: underline;
+}
