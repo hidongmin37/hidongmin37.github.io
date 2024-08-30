@@ -64,7 +64,9 @@ public @interface Auth {
   Role value() default Role.USER;
 }
 ```
-- **@Auth** 어노테이션을 만들어서 커스텀 Argument Resolver를 만들어보겠습니다.
+**@Auth** 어노테이션을 만들어서 커스텀 Argument Resolver를 만들어보겠습니다.
+
+<br>
 
 ```java
 @Sl4j  
@@ -123,6 +125,8 @@ public class AuthArgumentResolver implements HandlerMethodArgumentResolver {
 	}  
 }
 ```
+<br>
+
 - supportsParameter() 메서드는 Auth 어노테이션을 가지고 있으면서 Member 타입일 경우에만 true를 리턴한다.
 - resolveArgument() 메서드는 요청에서 Authorization 토큰을 찾고, 파라미터에서 Role을 찾아 토큰 검증, member 조회, role 권한을 체크하고 조회한 member를 리턴한다.
 - 권한과 토큰을 검증하게 되면서 컨트롤러 메서드에서 Auth 어노테이션을 사용하게 되면서 권한을 체크할 수 있게 된다.
