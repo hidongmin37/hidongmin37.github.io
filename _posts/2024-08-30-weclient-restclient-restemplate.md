@@ -185,6 +185,9 @@ String result = restClient.get()
 - Spring 6.1에서 새롭게 도입되어 지속적인 업데이트가 기대됨
 - RestTemplate을 대체하고자 하는 프로젝트나, WebClient의 복잡성을 피하고 싶은 경우에 적합.
 
+<br>
+
+---
 
 ### 이것들의 주용도 📌
 
