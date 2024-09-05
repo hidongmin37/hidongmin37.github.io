@@ -1,12 +1,31 @@
 # main links
-#main:
-#  - title: "Quick-Start Guide"
-#    url: https://mmistakes.github.io/minimal-mistakes/docs/quick-start-guide/
-  # - title: "About"
-  #   url: https://mmistakes.github.io/minimal-mistakes/about/
+main:
+  - title: "Category"
+    url: https://dongminjang24.github.io/categories/#
+  - title: "Tag"
+    url: https://dongminjang24.github.io/tags/
+  - title: "About"
+    url: https://dongminjang24.github.io/about/
   # - title: "Sample Posts"
   #   url: /year-archive/
   # - title: "Sample Collections"
   #   url: /collection-archive/
   # - title: "Sitemap"
   #   url: /sitemap/
+
+
+#sidebar-sample:
+#  - title: Backend
+#    children:
+#      - title: "Spring"
+#        url: /categories/#spring
+#      - title: "Spring Boot"
+#        url: /categories/#spring-boot
+#      - title: "Java"
+#        url: /categories/#java
+#      - title: "JPA"
+#        url: /categories/#jpa
+#  - title: Algorithm
+#    children:
+#      - title: "algorithm"
+#        url: /categories/#algorithm

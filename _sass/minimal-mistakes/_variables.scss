@@ -33,24 +33,36 @@ $global-font-family: $sans-serif !default;
 $header-font-family: $sans-serif !default;
 $caption-font-family: $serif !default;
 
+/* default value */
 /* type scale */
-$type-size-1: 1.953em !default; // ~31.248px
-$type-size-2: 1.563em !default; // ~25.008px
-$type-size-3: 1.25em !default; // ~20px
-$type-size-4: 1em !default; // ~16px
-$type-size-5: 0.75em !default; // ~12px
-$type-size-6: 0.6875em !default; // ~11px
-$type-size-7: 0.625em !default; // ~10px
-$type-size-8: 0.5625em !default; // ~9px
+$type-size-1: 2.441em !default; // ~39.056px
+$type-size-2: 1.953em !default; // ~31.248px
+$type-size-3: 1.563em !default; // ~25.008px
+$type-size-4: 1.25em !default; // ~20px
+$type-size-5: 1em !default; // ~16px
+$type-size-6: 0.75em !default; // ~12px
+$type-size-7: 0.6875em !default; // ~11px
+$type-size-8: 0.625em !default; // ~10px
+
+// /* type scale */
+// $type-size-1: 1.5em !default; // ~39.056px
+// $type-size-2: 1.5em !default; // ~31.248px
+// $type-size-3: 1.3em !default; // ~25.008px
+// $type-size-4: 1.05em !default; // ~20px
+// $type-size-5: 0.9em !default; // ~16px
+// $type-size-6: 0.85em !default; // ~12px
+// $type-size-7: 0.85em !default; // ~11px
+// $type-size-8: 0.85em !default; // ~10px
+// $code-size: 0.7em !default;
+// $title-size: 0.8em !default;
 
 /* headline scale */
-$h-size-1: 1.25em !default; // ~20px
-$h-size-2: 1.125em !default; // ~18px
-$h-size-3: 1.0625em !default; // ~17px
-$h-size-4: 1.03125em !default; // ~16.5px
-$h-size-5: 1em !default; // ~16px
-$h-size-6: 0.9375em !default; // ~15px
-
+$h-size-1: 1.563em !default; // ~25.008px
+$h-size-2: 1.25em !default; // ~20px
+$h-size-3: 1.125em !default; // ~18px
+$h-size-4: 1.0625em !default; // ~17px
+$h-size-5: 1.03125em !default; // ~16.5px
+$h-size-6: 1em !default; // ~16px
 
 /*
    Colors
@@ -119,10 +131,6 @@ $masthead-link-color: $primary-color !default;
 $masthead-link-color-hover: mix(#000, $primary-color, 25%) !default;
 $navicon-link-color-hover: mix(#fff, $primary-color, 75%) !default;
 
-/* notices */
-$notice-background-mix: 80% !default;
-$code-notice-background-mix: 90% !default;
-
 /* syntax highlighting (base16) */
 $base00: #263238 !default;
 $base01: #2e3c43 !default;
@@ -155,10 +163,14 @@ $max-width: $x-large !default;
 /*
    Grid
    ========================================================================== */
+/* default value */
+// $right-sidebar-width-narrow: 200px !default;
+// $right-sidebar-width: 300px !default;
+// $right-sidebar-width-wide: 400px !default;
 
-$right-sidebar-width-narrow: 200px !default;
-$right-sidebar-width: 300px !default;
-$right-sidebar-width-wide: 400px !default;
+$right-sidebar-width-narrow: 120px !default;
+$right-sidebar-width: 220px !default;
+$right-sidebar-width-wide: 320px !default;
 
 /*
    Other
