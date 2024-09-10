@@ -1,5 +1,5 @@
 ---
-title: "master & slave database setting debug"
+title: "Master & Slave 세팅에서 어노테이션을 가지고 master, slave를 구분할 수 있을까?"
 date: 2024-09-10
 comments: true
 categories:
@@ -13,7 +13,7 @@ tags:
 <br>
 
 ### Master & Slave 세팅에서 어떻게 어노테이션을 가지고 master, slave를 구분할 수 있을까?
-> 먼저 이를 위해서는 어떻게 동작하는 지에 대해서 알아야 합니다.
+> Spring Framework에서 Master/Slave 데이터베이스 라우팅이 어떻게 @Transactional(readOnly = true) 어노테이션과 연계되어 동작하는지 살펴보겠습니다.
 
 ```java
 
