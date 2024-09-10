@@ -1,17 +1,18 @@
 ---
-title: "master && slave database구조"
+title: "master & slave database 구조"
 date: 2024-09-05
 comments: true
 categories:
   - posts
 tags:
-  - master&&slave
+  - master
+  - slave
   - coding
 ---
 
 <br>
 
-### Master && Slave Database란?
+### Master & Slave Database란?
 > Master-Slave 데이터베이스 구조는 하나의 주 데이터베이스(Master)와 하나 이상의 복제 데이터베이스(Slave)로 구성됩니다.
 
 <br>
