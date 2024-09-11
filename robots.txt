@@ -1,3 +1,0 @@
-User-agent: *
-   Allow: /
-   Sitemap: https://dongminjang24.github.io/sitemap.xml
