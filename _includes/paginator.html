@@ -1,7 +1,7 @@
 {% if paginator.total_pages > 1 %}
-<nav class="pagination">
+<nav class="pagination" style="text-align: center">
   {% assign first_page_path = paginator.first_page_path | default: site.paginate_path | replace: 'page:num', '' | replace: '//', '/' | relative_url %}
-  <ul>
+  <ul style="display: inline-block; margin-top:5em;">
     {% comment %} Link for previous page {% endcomment %}
     {% if paginator.previous_page %}
       {% if paginator.previous_page == 1 %}
