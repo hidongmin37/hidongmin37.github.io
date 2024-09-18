@@ -1,6 +1,6 @@
 ---
 title: "crontab이란 무엇인가?"
-date: 2024-09-19
+date: 2024-09-18
 comments: true
 categories:
   - posts
