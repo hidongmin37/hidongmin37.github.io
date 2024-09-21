@@ -62,7 +62,7 @@ TransactionSynchronizationManager.isCurrentTransactionReadOnly();
 ```java
 public static boolean isCurrentTransactionReadOnly() {
 		return (currentTransactionReadOnly.get() != null);
-	}
+}
 ```
 해당 부분은 아래에서 자세하게 설명 드리겠습니다.
 
@@ -72,7 +72,7 @@ public static boolean isCurrentTransactionReadOnly() {
 ② 다시 currentTransactionReadOnly.get()을 클릭하여 해당 부분을 들어가봅니다.
 
 ```java
-    public T get() {
+public T get() {
   return get(Thread.currentThread());
 }
 ```
@@ -160,9 +160,9 @@ private static final ThreadLocal<Boolean> actualTransactionActive =
 @Transactional(readOnly = true) 어노테이션은 currentTransactionReadOnly 변수에 true 값을 저장합니다. 이는 현재 트랜잭션이 읽기 전용인지 아닌지를 나타내는 값입니다.
 
 ```java
-	public static void setCurrentTransactionReadOnly(boolean readOnly) {
-		currentTransactionReadOnly.set(readOnly ? Boolean.TRUE : null);
-	}
+public static void setCurrentTransactionReadOnly(boolean readOnly) {
+  currentTransactionReadOnly.set(readOnly ? Boolean.TRUE : null);
+}
 ```
 
 해당 부분을 좀 깊게 들어가 보면 setCurrentTransactionReadOnly과 같은 클래스(AbstractPlatformTransactionManager)의 메서드인 getTransaction을 살펴보면 아래와 같습니다.
@@ -286,7 +286,7 @@ startTransaction() 메서드에서는 트랜잭션을 시작하고, 트랜잭션
 
 
 ```java
-	protected void prepareSynchronization(DefaultTransactionStatus status, TransactionDefinition definition) {
+protected void prepareSynchronization(DefaultTransactionStatus status, TransactionDefinition definition) {
   if (status.isNewSynchronization()) {
     TransactionSynchronizationManager.setActualTransactionActive(status.hasTransaction());
     TransactionSynchronizationManager.setCurrentTransactionIsolationLevel(
@@ -305,8 +305,8 @@ startTransaction() 메서드에서는 트랜잭션을 시작하고, 트랜잭션
 
 ```java
 public static boolean isCurrentTransactionReadOnly() {
-		return (currentTransactionReadOnly.get() != null);
-	}
+  return (currentTransactionReadOnly.get() != null);
+}
 ```
 그 후에 isCurrentTransactionReadOnly() 메서드를 호출하여 현재 트랜잭션이 읽기 전용인지 아닌지를 반환합니다.
 
