@@ -1,5 +1,5 @@
 ---
-title: "redis pub/sub활용하기"
+title: "redis pub/sub 활용하기"
 date: 2024-09-23
 comments: true
 categories:
