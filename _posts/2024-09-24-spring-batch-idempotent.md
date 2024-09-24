@@ -9,409 +9,255 @@ tags:
   - coding
 ---
 
-<br>
-
-### 멱등성이란?
-> 멱등성(Idempotency)은 연산을 여러 번 수행해도 결과가 달라지지 않는 특성을 말합니다. 이는 분산 시스템이나 데이터 처리 작업에서 중요한 개념으로, 안정적이고 일관된 결과를 보장하는 데 핵심적인 역할을 합니다.
+# Spring Batch 멱등하게 운영하기
 
 
 <br>
 
----
-
-<br>
-
-
-## Spring Batch에서의 멱등성
-
-Spring Batch 작업에서 멱등성을 보장하는 것은 데이터의 일관성과 신뢰성을 유지하는 데 필수적입니다. 특히 배치 작업이 반복적으로 실행되거나 실패 후 재시도될 경우, 멱등성은 중복 처리로 인한 오류를 방지합니다.
-
-
-### 1. 매일 한 번 어제 매출 데이터 집계
-
-#### 시나리오:
-매일 자정에 배치 작업이 실행되어 전날의 매출 데이터를 집계합니다.
-
-#### 멱등성 구현:
-- 작업 시작 시 항상 어제 날짜를 기준으로 데이터를 조회합니다.
-- 집계 전 해당 날짜의 기존 집계 데이터를 삭제합니다. ➡️ 이 때, 데이터가 이미 삭제되어 있다면 무시합니다.
-- 새로운 집계 결과를 삽입합니다.
-
-#### 예시코드
-
-```java
-@Bean
-public Job dailySalesJob(JobBuilderFactory jobBuilderFactory, StepBuilderFactory stepBuilderFactory) {
-  return jobBuilderFactory.get("dailySalesJob")
-    .start(deletePreviousSummaryStep(stepBuilderFactory))
-    .next(dailySalesStep(stepBuilderFactory))
-    .build();
-}
-
-@Bean
-public Step deletePreviousSummaryStep(StepBuilderFactory stepBuilderFactory) {
-  return stepBuilderFactory.get("deletePreviousSummaryStep")
-    .tasklet((contribution, chunkContext) -> {
-      LocalDate yesterday = LocalDate.now().minusDays(1);
-      salesSummaryRepository.deleteByDate(yesterday);
-      return RepeatStatus.FINISHED;
-    })
-    .build();
-}
-
-@Bean
-public Step dailySalesStep(StepBuilderFactory stepBuilderFactory) {
-  return stepBuilderFactory.get("dailySalesStep")
-    .<Sale, SalesSummary>chunk(100)
-    .reader(salesReader())
-    .processor(salesProcessor())
-    .writer(salesSummaryWriter())
-    .build();
-}
-
-@Bean
-@StepScope
-public JpaPagingItemReader<Sale> salesReader() {
-  LocalDate yesterday = LocalDate.now().minusDays(1);
-  return new JpaPagingItemReaderBuilder<Sale>()
-    .name("salesReader")
-    .entityManagerFactory(entityManagerFactory)
-    .queryString("SELECT s FROM Sale s WHERE s.date = :date")
-    .parameterValues(Collections.singletonMap("date", yesterday))
-    .build();
-}
-```
-
-<br>
-
-### 2. 실행 시간 기준으로 어제 데이터 집계
-
-#### 시나리오:
-배치 작업이 실행되는 현재 시간을 기준으로 어제 날짜의 데이터를 집계합니다.
-
-
-#### 멱등성 구현:
-- 작업 시작 시 현재 시간을 기준으로 어제 날짜를 계산해 데이터를 조회합니다.
-- 기존 집계 데이터가 있다면 덮어쓰고, 없으면 새로 생성합니다.
-
-
-#### 예시코드
-
-```java
-@Bean
-@StepScope
-public ItemReader<Transaction> transactionReader() {
-  LocalDate yesterday = LocalDate.now().minusDays(1);
-  return new JpaPagingItemReaderBuilder<Transaction>()
-    .name("transactionReader")
-    .entityManagerFactory(entityManagerFactory)
-    .queryString("SELECT t FROM Transaction t WHERE DATE(t.transactionDate) = :yesterday")
-    .parameterValues(Collections.singletonMap("yesterday", yesterday))
-    .build();
-}
-
-@Bean
-public ItemWriter<TransactionSummary> transactionSummaryWriter() {
-  return items -> {
-    for (TransactionSummary summary : items) {
-      TransactionSummary existingSummary = summaryRepository.findByDate(summary.getDate());
-      if (existingSummary != null) {
-        existingSummary.update(summary);
-        summaryRepository.save(existingSummary);
-      } else {
-        summaryRepository.save(summary);
-      }
-    }
-  };
-}
-```
-
-
-<br>
-
-### 3. 오늘 기준으로 휴면 회원 처리
-
-#### 시나리오:
-매일 일정 시간에 배치 작업을 실행하여, 현재 날짜 기준으로 1년 이상 로그인하지 않은 회원을 휴면 상태로 변경합니다.
-
-
-#### 멱등성 구현:
-
-- 현재 날짜를 기준으로 휴면 대상 회원을 조회합니다.
-- 이미 휴면 처리된 회원은 제외하고, 처리 시 해당 일자를 기록하여 중복 처리를 방지합니다.
-
-
-#### 예시코드
-
-```java
-@Bean
-@StepScope
-public JpaPagingItemReader<User> dormantUserReader() {
-  LocalDate oneYearAgo = LocalDate.now().minusYears(1);
-  return new JpaPagingItemReaderBuilder<User>()
-    .name("dormantUserReader")
-    .entityManagerFactory(entityManagerFactory)
-    .queryString("SELECT u FROM User u WHERE u.lastLoginDate < :oneYearAgo AND u.status != 'DORMANT'")
-    .parameterValues(Collections.singletonMap("oneYearAgo", oneYearAgo))
-    .build();
-}
-
-@Bean
-public ItemProcessor<User, User> dormantUserProcessor() {
-  return user -> {
-    user.setStatus("DORMANT");
-    user.setDormantDate(LocalDate.now());
-    return user;
-  };
-}
-
-@Bean
-public ItemWriter<User> dormantUserWriter() {
-  return users -> {
-    for (User user : users) {
-      User existingUser = userRepository.findById(user.getId()).orElse(null);
-      if (existingUser != null && !existingUser.getStatus().equals("DORMANT")) {
-        userRepository.save(user);
-      }
-    }
-  };
-}
-```
-
-<br>
-
-
-### 주의) Spring Batch의 동시 실행 방지 기능
-
-Spring Batch는 기본적으로 동일한 JobInstance의 동시 실행을 방지합니다. 이는 JobRepository를 통해 구현되며, 작업 실행 전에 이미 실행 중인 동일한 Job이 있는지 확인합니다.
-
-<br>
-
-그러나 이 기능에는 몇 가지 주의점이 있습니다:
-
-**분산 환경에서의 제한:** <br>
-기본 구현은 단일 데이터베이스를 사용하는 환경에서만 완벽하게 작동합니다.
-
-**네트워크 지연:** <br>
-분산 환경에서 네트워크 지연으로 인해 동시 실행 체크가 정확하지 않을 수 있습니다.
-
-**데이터베이스 트랜잭션:** <br>
-동시 실행 체크와 작업 실행 사이에 미세한 시간 차이가 있을 수 있습니다.
-
-따라서, 완벽한 동시 실행 방지를 위해서는 추가적인 조치가 필요할 수 있습니다.
-
+## 1. 멱등성이란?
+> **멱등성(Idempotency)**은 연산을 여러 번 수행해도 결과가 변하지 않는 특성을 말합니다. 이는 분산 시스템이나 데이터 처리 작업에서 매우 중요하며, 안정적이고 일관된 결과를 보장합니다.
 
 <br>
 
 ---
 
-## 분산 환경에서의 동시 실행 방지
-
-분산 환경에서 더 강력한 동시 실행 방지를 위해 다음과 같은 방법을 고려할 수 있습니다:
-
-### 1. **분산 락(Distributed Lock) 사용:**
-- Redis, ZooKeeper 등의 분산 락 서비스를 사용하여 동시 실행을 제어합니다.
-- 작업 실행 전 락을 획득하고, 작업 완료 후 락을 해제합니다.
 
 
-### 2. **데이터베이스 락 사용:**
-
-- SELECT FOR UPDATE 등의 쿼리를 이용한 데이터베이스 수준의 락 구현
-- 주의: 데이터베이스 성능에 영향을 줄 수 있음
-
-### 3. **큐 시스템 활용:**
-
-- RabbitMQ, Apache Kafka 등의 메시지 큐 시스템을 이용한 작업 관리
-- 작업을 큐에 등록하고 단일 컨슈머가 처리하도록 구성
 
 
-## Kafka를 이용한 Spring batch 작업관리
+## 2. Spring Batch에서의 멱등성
 
-Kafka를 이용하여 Spring Batch 작업을 관리하는 방법은 다음과 같습니다:
+Spring Batch 작업에서 멱등성을 보장하면 데이터의 일관성과 신뢰성을 유지할 수 있습니다. 특히 배치 작업이 반복되거나 재시도될 때, 중복 처리로 인한 오류를 방지할 수 있습니다.
 
-### **구현 전략:** <br>
-- 각 배치 작업을 Kafka 토픽의 메시지로 표현합니다.
-- 단일 컨슈머 그룹을 사용하여 메시지를 순차적으로 처리합니다.
-- 작업 완료 후 커밋을 통해 중복 처리를 방지합니다.
 
 <br>
 
-### **예시 코드:** <br>
+--- 
+
+## 3. 멱등성을 유지하는 방법
+
+
+### 1️⃣ **고유 Job 파라미터 사용**
+
+배치 작업에 고유한 Job 파라미터를 사용하여 중복 실행을 방지할 수 있습니다.
+
+
+```java
+public class StateTrackingItemProcessor implements ItemProcessor<InputData, OutputData> {
+  @Autowired private JdbcTemplate jdbcTemplate;
+
+  @Override
+  public OutputData process(InputData item) throws Exception {
+    String status = jdbcTemplate.queryForObject("SELECT status FROM item_status WHERE item_id = ?", String.class, item.getId());
+    if ("PROCESSED".equals(status)) {
+      return null; // 이미 처리된 아이템은 스킵
+    }
+    // 처리 상태 업데이트
+    jdbcTemplate.update("UPDATE item_status SET status = 'PROCESSED' WHERE item_id = ?", item.getId());
+    return new OutputData(); // 아이템 처리 로직
+  }
+}
+
+```
+
+
+Job 실행 시마다 `UniqueRunIdIncrementer`를 사용해 고유한 ID를 생성하여 동일한 Job이 중복 실행되는 것을 막습니다.
+
+
+
+<br>
+
+### 2️⃣ **JobRepository 사용**
+
+
+**JobRepository**는 Job 실행 이력을 관리하며, 동일한 파라미터로 Job이 다시 실행되는 것을 방지합니다.
+
 
 
 ```java
 @Configuration
-public class KafkaConfig {
-    @Bean
-    public ConsumerFactory<String, String> consumerFactory() {
-        Map<String, Object> props = new HashMap<>();
-        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, "batch-job-group");
-        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        return new DefaultKafkaConsumerFactory<>(props);
-    }
-
-    @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, String> kafkaListenerContainerFactory() {
-        ConcurrentKafkaListenerContainerFactory<String, String> factory = new ConcurrentKafkaListenerContainerFactory<>();
-        factory.setConsumerFactory(consumerFactory());
-        return factory;
-    }
+@EnableBatchProcessing
+public class BatchConfig extends DefaultBatchConfigurer {
+  @Override
+  protected JobRepository createJobRepository() throws Exception {
+    JobRepositoryFactoryBean factory = new JobRepositoryFactoryBean();
+    factory.setDataSource(dataSource);
+    factory.setTransactionManager(getTransactionManager());
+    factory.setIsolationLevelForCreate("ISOLATION_SERIALIZABLE");
+    factory.setTablePrefix("BATCH_");
+    factory.setMaxVarCharLength(1000);
+    return factory.getObject();
+  }
 }
-```
 
-Kafka 컨슈머 팩토리와 리스너 컨테이너 팩토리를 빈으로 등록합니다.
+
+```
 
 <br>
 
----
+
+### 3️⃣ **데이터 처리 로직 설계**
+
+읽기 작업은 여러 번 수행해도 안전하게, 쓰기 작업은 upsert와 같은 멱등성을 보장하는 방식으로 설계해야 합니다.
+
 
 ```java
-@Component
-public class BatchJobListener {
+public class IdempotentItemWriter implements ItemWriter<User> {
+  @Autowired private JdbcTemplate jdbcTemplate;
 
-    @Autowired
-    private JobLauncher jobLauncher;
-
-    @Autowired
-    private Job sampleBatchJob;
-
-    @KafkaListener(topics = "batch-jobs", groupId = "batch-job-group")
-    public void listenGroupFoo(String message) {
-        try {
-            JobParameters jobParameters = new JobParametersBuilder()
-                    .addString("jobId", message)
-                    .addDate("date", new Date())
-                    .toJobParameters();
-            
-            JobExecution jobExecution = jobLauncher.run(sampleBatchJob, jobParameters);
-            
-            if (jobExecution.getStatus() == BatchStatus.COMPLETED) {
-                System.out.println("Batch job completed successfully");
-            } else {
-                System.out.println("Batch job failed with status: " + jobExecution.getStatus());
-            }
-        } catch (Exception e) {
-            System.err.println("Error executing batch job: " + e.getMessage());
-        }
+  @Override
+  public void write(List<? extends User> items) throws Exception {
+    for (User user : items) {
+      jdbcTemplate.update(
+        "INSERT INTO users (id, name, email) VALUES (?, ?, ?) " +
+          "ON DUPLICATE KEY UPDATE name = VALUES(name), email = VALUES(email)",
+        user.getId(), user.getName(), user.getEmail()
+      );
     }
+  }
 }
+
 ```
-배치 작업 리스너를 등록하여 배치 작업을 실행합니다.
+이 방식은 MySQL의 upsert를 활용해 멱등성을 유지합니다.
 
 <br>
 
----
+### 4️⃣ **트랜잭션 관리**
+
+각 청크 단위로 트랜잭션을 관리하며, 필요에 따라 트랜잭션 범위를 조정할 수 있습니다.
 
 ```java
 @Configuration
 @EnableBatchProcessing
 public class BatchConfig {
+  @Autowired private StepBuilderFactory stepBuilderFactory;
 
-    @Autowired
-    public JobBuilderFactory jobBuilderFactory;
+  @Bean
+  public Step sampleStep(PlatformTransactionManager transactionManager) {
+    return stepBuilderFactory.get("sampleStep")
+      .<InputData, OutputData>chunk(10)
+      .reader(itemReader())
+      .processor(itemProcessor())
+      .writer(itemWriter())
+      .transactionManager(transactionManager)
+      .build();
+  }
 
-    @Autowired
-    public StepBuilderFactory stepBuilderFactory;
-
-    @Bean
-    public Job sampleBatchJob() {
-        return jobBuilderFactory.get("sampleBatchJob")
-                .start(sampleBatchStep())
-                .build();
-    }
-
-    @Bean
-    public Step sampleBatchStep() {
-        return stepBuilderFactory.get("sampleBatchStep")
-                .tasklet((contribution, chunkContext) -> {
-                    System.out.println("Executing sample batch step");
-                    Thread.sleep(5000); // 작업 시뮬레이션
-                    return RepeatStatus.FINISHED;
-                })
-                .build();
-    }
+  @Bean
+  public PlatformTransactionManager transactionManager() {
+    return new DataSourceTransactionManager(dataSource());
+  }
 }
+
 ```
-배치 작업 정의
 
-<br>
-
----
   
-```java
-@Component
-public class JobScheduler {
+<br>
 
-    @Autowired
-    private KafkaTemplate<String, String> kafkaTemplate;
+### 5️⃣ **에러 처리 및 재시도 메커니즘**
 
-    @Scheduled(cron = "0 0 1 * * ?") // 매일 새벽 1시에 실행
-    public void scheduleJobExecution() {
-        String jobId = UUID.randomUUID().toString();
-        kafkaTemplate.send("batch-jobs", jobId);
-    }
+일시적 오류에 대해 재시도 로직을 구현하고, 영구적인 오류는 적절히 처리합니다.
+
+
+```java 
+@Bean
+public Step sampleStep() {
+  return stepBuilderFactory.get("sampleStep")
+    .<InputData, OutputData>chunk(10)
+    .reader(itemReader())
+    .processor(itemProcessor())
+    .writer(itemWriter())
+    .faultTolerant()
+    .retry(TemporaryNetworkException.class)
+    .retryLimit(3)
+    .skip(UnrecoverableException.class)
+    .skipLimit(5)
+    .listener(new StepExecutionListener() {
+      @Override
+      public void afterStep(StepExecution stepExecution) {
+        if (stepExecution.getStatus() == BatchStatus.FAILED) {
+          // 로그 기록 또는 알림 발송
+        }
+      }
+    })
+    .build();
 }
+
 ```
-작업 스케줄러 (옵션)
+
+<br>
+
+### 6️⃣ **상태 추적**
+
+각 아이템의 처리 상태를 추적하여 중복 처리를 방지할 수 있습니다.
+
+
+
+```java
+public class StateTrackingItemProcessor implements ItemProcessor<InputData, OutputData> {
+  @Autowired private JdbcTemplate jdbcTemplate;
+
+  @Override
+  public OutputData process(InputData item) throws Exception {
+    String status = jdbcTemplate.queryForObject("SELECT status FROM item_status WHERE item_id = ?", String.class, item.getId());
+    if ("PROCESSED".equals(status)) {
+      return null;
+    }
+    jdbcTemplate.update("UPDATE item_status SET status = 'PROCESSED' WHERE item_id = ?", item.getId());
+    return new OutputData();
+  }
+}
+
+```
+
 
 
 <br>
+
 
 ---
 
-### 👩🏻‍🏫 코드 설명
+## 4. 제어할 수 없는 코드 처리
 
-1️⃣ KafkaConfig<br> 
-Kafka 컨슈머 설정을 정의합니다. 단일 컨슈머 그룹을 사용하여 동시 실행을 방지합니다.
 
-2️⃣ BatchJobListener <br>
-Kafka 토픽에서 메시지를 수신하고 배치 작업을 실행합니다.
-`@KafkaListener` 어노테이션을 사용하여 특정 토픽을 구독합니다.
+**LocalDate.now()** 와 같이 제어할 수 없는 코드는 사용하지 말고, 외부에서 값을 주입받도록 해야 합니다.
 
-3️⃣ BatchConfig <br>
-실제 배치 작업의 로직을 정의합니다. 이 예시에서는 간단한 작업을 시뮬레이션합니다.
 
-4️⃣ JobScheduler (옵션) <br>
-정기적으로 Kafka 토픽에 메시지를 보내 배치 작업을 스케줄링합니다.
+
+```java
+@Bean(name = BATCH_NAME + "_reader")
+@StepScope
+public JpaPagingItemReader<Product> reader(@Value("#{jobParameters[createDate]}") String createDate) {
+  Map<String, Object> params = new HashMap<>();
+  params.put("createDate", LocalDate.parse(createDate));
+  return new JpaPagingItemReaderBuilder<Product>()
+    .name(BATCH_NAME + "_reader")
+    .entityManagerFactory(entityManagerFactory)
+    .pageSize(chunkSize)
+    .queryString("SELECT p FROM Product p WHERE p.createDate =:now")
+    .parameterValues(params)
+    .build();
+}
+
+```
+
+공휴일/주말/평일 마다 테스트 결과가 달라지게 될 수도 있습니다.
+
+
+
 
 <br>
+
 
 ---
 
-**이 방식의 장점은 다음과 같습니다:**
+### 결론
 
-- **분산 환경에서 효과적으로 작동:** Kafka의 분산 특성을 활용합니다.
-
-<br>
-
-- **순차적 실행 보장:** 단일 컨슈머 그룹을 사용하여 작업의 순차적 실행을 보장합니다.
-<br>
-
-- **장애 복구 용이:** Kafka의 오프셋 관리를 통해 작업 실패 시 쉽게 재시작할 수 있습니다.
-
-<br>
-
----
-
-
-## 결론
-
-Spring Batch에서 멱등성을 구현하면 데이터 처리의 안정성과 신뢰성을 크게 향상시킬 수 있습니다. 
-
-예시에서처럼 날짜 기반 데이터 필터링과 중복 처리 방지 로직을 추가하여, 배치 작업이 재실행되더라도 일관된 결과를 보장할 수 있습니다.
-
-또한, 동시 실행 방지를 위해 Spring Batch의 기본 기능과 함께 추가적인 분산 락 메커니즘을 활용하면, 더욱 안정적인 배치 시스템을 구축할 수 있습니다. 
-
-이는 특히 대규모 분산 환경에서 중요하며, 데이터의 정합성을 유지하는 데 큰 도움이 됩니다.
-
-마지막으로, 멱등성 구현 시 항상 에지 케이스와 예외 상황을 고려해야 합니다. 
-
-철저한 테스트와 모니터링을 통해 배치 작업의 안정성을 지속적으로 검증하고 개선하는 것이 중요합니다.
+이러한 방법들을 조합해 Spring Batch의 멱등성을 유지할 수 있습니다. 상황에 맞게 적용하고, 충분한 테스트와 모니터링을 통해 안정성을 높이는 것이 중요합니다.
 
 
 ---
+
 
 ### 참고사이트
 
