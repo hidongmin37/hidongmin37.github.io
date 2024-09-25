@@ -1,5 +1,5 @@
 ---
-title: WS / WAS / DB 레이어 별 장애 포인트 조사 및 대응 방안
+title: WS / WAS / DB 레이어 별 장애 포인트 및 대응 방안
 date: 2024-09-24
 comments: true
 categories:
@@ -12,7 +12,6 @@ tags:
   - coding
 ---
 
-# WS / WAS / DB 레이어 별 장애 포인트 조사 및 대응 방안
 
 ## 1. 웹 서버(WS) 레이어
 
