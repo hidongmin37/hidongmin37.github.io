@@ -1,6 +1,6 @@
 ---
 title: WS / WAS / DB 레이어 별 장애 포인트 및 대응 방안
-date: 2024-09-24
+date: 2024-09-25
 comments: true
 categories:
   - posts
