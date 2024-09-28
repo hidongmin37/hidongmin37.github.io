@@ -96,34 +96,7 @@ public class BatchConfig extends DefaultBatchConfigurer {
 
 <br>
 
-
-### &nbsp;&nbsp; 3️⃣ **데이터 처리 로직 설계**
-
-읽기 작업은 여러 번 수행해도 안전하게, 쓰기 작업은 upsert와 같은 멱등성을 보장하는 방식으로 설계해야 합니다.
-
-
-```java
-public class IdempotentItemWriter implements ItemWriter<User> {
-  @Autowired private JdbcTemplate jdbcTemplate;
-
-  @Override
-  public void write(List<? extends User> items) throws Exception {
-    for (User user : items) {
-      jdbcTemplate.update(
-        "INSERT INTO users (id, name, email) VALUES (?, ?, ?) " +
-          "ON DUPLICATE KEY UPDATE name = VALUES(name), email = VALUES(email)",
-        user.getId(), user.getName(), user.getEmail()
-      );
-    }
-  }
-}
-
-```
-이 방식은 MySQL의 upsert를 활용해 멱등성을 유지합니다.
-
-<br>
-
-### &nbsp;&nbsp; 4️⃣ **트랜잭션 관리**
+### &nbsp;&nbsp; 3️⃣ **트랜잭션 관리**
 
 각 청크 단위로 트랜잭션을 관리하며, 필요에 따라 트랜잭션 범위를 조정할 수 있습니다.
 
@@ -196,7 +169,8 @@ public Step sampleStep() {
 
 ```java
 public class StateTrackingItemProcessor implements ItemProcessor<InputData, OutputData> {
-  @Autowired private JdbcTemplate jdbcTemplate;
+  @Autowired 
+  private JdbcTemplate jdbcTemplate;
 
   @Override
   public OutputData process(InputData item) throws Exception {
