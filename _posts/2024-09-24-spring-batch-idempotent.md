@@ -52,6 +52,7 @@ public class StateTrackingItemProcessor implements ItemProcessor<InputData, Outp
     if ("PROCESSED".equals(status)) {
       return null; // 이미 처리된 아이템은 스킵
     }
+    jdbcTemplate.incrementor(new RunIdIncrementer());
     // 처리 상태 업데이트
     jdbcTemplate.update("UPDATE item_status SET status = 'PROCESSED' WHERE item_id = ?", item.getId());
     return new OutputData(); // 아이템 처리 로직
