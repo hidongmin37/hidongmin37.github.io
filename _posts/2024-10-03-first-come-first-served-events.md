@@ -320,6 +320,26 @@ public class GifticonIssuanceBatchConfig {
   }
 }
 
+
+
+@Slf4j
+@Component
+public class DataCleanupTasklet implements Tasklet {
+
+  private final StringRedisTemplate redisTemplate;
+
+  public DataCleanupTasklet(StringRedisTemplate redisTemplate) {
+    this.redisTemplate = redisTemplate;
+  }
+
+  @Override
+  public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
+    log.info("Cleaning up Redis data...");
+    redisTemplate.delete("WINNERS");
+    // 기타 정리 작업 수행
+    return RepeatStatus.FINISHED;
+  }
+}
 ```
 
 
