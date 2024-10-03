@@ -1,5 +1,5 @@
 ---
-title: 선착순 이벤트 구현
+title: 선착순 이벤트 구현(Redis, Kafka, Spring Batch)
 date: 2024-10-03
 comments: true
 categories:
