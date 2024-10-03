@@ -206,48 +206,101 @@ public class GifticonIssuanceBatchConfig {
   private final JobBuilderFactory jobBuilderFactory;
   private final StepBuilderFactory stepBuilderFactory;
   private final StringRedisTemplate redisTemplate;
+  private final KafkaTemplate<String, String> kafkaTemplate;
 
   @Bean
   public Job gifticonIssuanceJob() {
     return jobBuilderFactory.get("gifticonIssuanceJob")
-      .start(gifticonIssuanceStep())
+      .start(winnerProcessingStep())
+      .next(gifticonIssuanceStep())
+      .next(dataCleanupStep())
+      .build();
+  }
+
+  @Bean
+  public Step winnerProcessingStep() {
+    return stepBuilderFactory.get("winnerProcessingStep")
+      .<String, Winner>chunk(100)
+      .reader(kafkaItemReader())
+      .processor(winnerProcessor())
+      .writer(winnerWriter())
       .build();
   }
 
   @Bean
   public Step gifticonIssuanceStep() {
     return stepBuilderFactory.get("gifticonIssuanceStep")
-      .<String, Gifticon>chunk(10)
+      .<Winner, Gifticon>chunk(100)
       .reader(winnerReader())
       .processor(gifticonProcessor())
       .writer(gifticonWriter())
-      .faultTolerant()
-      .retry(Exception.class)
-      .retryLimit(3)
+      .build();
+  }
+
+  @Bean
+  public Step dataCleanupStep() {
+    return stepBuilderFactory.get("dataCleanupStep")
+      .tasklet(new DataCleanupTasklet(redisTemplate))
       .build();
   }
 
   @Bean
   @StepScope
-  public ItemReader<String> winnerReader() {
-    return new ItemReader<String>() {
-      private Set<String> winners;
-      private Iterator<String> iterator;
+  public KafkaItemReader<String, String> kafkaItemReader() {
+    Properties props = new Properties();
+    props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+    props.put(ConsumerConfig.GROUP_ID_CONFIG, "batch-consumer-group");
 
-      @Override
-      public String read() {
-        if (winners == null) {
-          winners = redisTemplate.opsForZSet().range("EVENT_WINNERS", 0, -1);
-          iterator = winners.iterator();
-        }
-        return iterator.hasNext() ? iterator.next() : null;
+    return new KafkaItemReaderBuilder<String, String>()
+      .topic("gifticon_publish")
+      .partitions(0)
+      .consumerProperties(props)
+      .name("gifticonReader")
+      .build();
+  }
+
+  @Bean
+  public ItemProcessor<String, Winner> winnerProcessor() {
+    return item -> {
+      String[] parts = item.split(":");
+      return new Winner(parts[1], Event.valueOf(parts[0]));
+    };
+  }
+
+  @Bean
+  public ItemWriter<Winner> winnerWriter() {
+    return winners -> {
+      for (Winner winner : winners) {
+        redisTemplate.opsForSet().add("WINNERS", winner.toString());
       }
     };
   }
 
   @Bean
-  public ItemProcessor<String, Gifticon> gifticonProcessor() {
-    return winner -> new Gifticon(winner, generateSecureCode());
+  @StepScope
+  public ItemReader<Winner> winnerReader() {
+    return new ItemReader<Winner>() {
+      private Set<String> winners;
+      private Iterator<String> iterator;
+
+      @Override
+      public Winner read() {
+        if (winners == null) {
+          winners = redisTemplate.opsForSet().members("WINNERS");
+          iterator = winners.iterator();
+        }
+        if (iterator.hasNext()) {
+          String[] parts = iterator.next().split(":");
+          return new Winner(parts[0], Event.valueOf(parts[1]));
+        }
+        return null;
+      }
+    };
+  }
+
+  @Bean
+  public ItemProcessor<Winner, Gifticon> gifticonProcessor() {
+    return winner -> new Gifticon(winner.getEvent(), generateSecureCode());
   }
 
   @Bean
@@ -256,6 +309,7 @@ public class GifticonIssuanceBatchConfig {
       for (Gifticon gifticon : gifticons) {
         log.info("Issued gifticon: {}", gifticon);
         // 기프티콘 저장 로직 (DB 저장 또는 외부 시스템 호출)
+        kafkaTemplate.send("gifticon_issued", gifticon.toString());
       }
     };
   }
