@@ -105,7 +105,9 @@ author:
     - label: "GitHub"
       icon: "fab fa-fw fa-github"
       url: "https://github.com/dongminjang24"
-
+    - label: "Notion"
+      icon: "fas fa-fw fa-link"  # 노션 전용 아이콘이 없어서 일반 링크 아이콘 사용
+      url: "https://bit.ly/3MEGQ0q"
 
 
 # Site Footer
