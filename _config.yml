@@ -11,11 +11,11 @@ minimal_mistakes_skin    : "default" # "air", "aqua", "contrast", "dark", "dirt"
 
 # Site Settings
 locale                   : "ko-KR"
-title                    : "Coco's Daddy"
+title                    : "코코와 개발자"
 title_separator          : "-"
-subtitle                 : "Daddy of Coco, the Shiba Inu"
-name                     : &name "Dong Min Jang" # &name is a YAML anchor which can be *referenced later
-description              : &description "A Blog Where I Collect and Explore Technologies I Like and Am Curious About."
+subtitle                 : "시바견 코코를 키우는 개발자입니다 ·ᴗ·"
+name                     : &name "장동민(張同暋)" # &name is a YAML anchor which can be *referenced later
+description              : &description "공부하면서 시바견을 키우는 개발자의 블로그입니다."
 url                      : "https://dongminjang24.github.io" # the base hostname & protocol for your site e.g. "https://mmistakes.github.io"
 # baseurl                  : "/dongmin-log" # the subpath of your site, e.g. "/blog"
 # repository               : "dongminjang24/dongminjang24.github.io"
@@ -99,7 +99,7 @@ analytics:
 author:
   name             : *name # *name is a YAML reference pointing to the &anchor earlier
   avatar           : "/assets/images/dong_min.jpeg"
-  bio              : "Just Keep going,Don't think."
+  bio              : "무슨 생각을 해, 그냥 하는 거지."
   location         : "Seoul ,Korea"
   links:
     - label: "GitHub"
