@@ -320,6 +320,6 @@ compress_html:
     envs: development
 
 
-favicon: /assets/favicon/coco2.png.png
+favicon: "/assets/favicon/coco2.png.png"
 
 img_cdn: https://cdn.jsdelivr.net/gh/dongminjang24/dongminjang24.github.io@main
