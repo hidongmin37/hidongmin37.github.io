@@ -17,11 +17,11 @@ tags:
 ## 1. 멱등성이란?
 > **멱등성(Idempotency)**은 연산을 여러 번 수행해도 결과가 변하지 않는 특성을 말합니다. 이는 분산 시스템이나 데이터 처리 작업에서 매우 중요하며, 안정적이고 일관된 결과를 보장합니다.
 
+
+
 <br>
 
 ---
-
-
 
 
 
@@ -30,169 +30,9 @@ tags:
 Spring Batch 작업에서 멱등성을 보장하면 데이터의 일관성과 신뢰성을 유지할 수 있습니다. 특히 배치 작업이 반복되거나 재시도될 때, 중복 처리로 인한 오류를 방지할 수 있습니다.
 
 
-<br>
-
---- 
-
-## 3. 멱등성을 유지하는 방법
 
 
-### &nbsp;&nbsp; 1) **고유 Job 파라미터 사용**
-
-배치 작업에 고유한 Job 파라미터를 사용하여 중복 실행을 방지할 수 있습니다.
-
-
-```java
-public class StateTrackingItemProcessor implements ItemProcessor<InputData, OutputData> {
-  @Autowired private JdbcTemplate jdbcTemplate;
-
-  @Override
-  public OutputData process(InputData item) throws Exception {
-    String status = jdbcTemplate.queryForObject("SELECT status FROM item_status WHERE item_id = ?", String.class, item.getId());
-    if ("PROCESSED".equals(status)) {
-      return null; // 이미 처리된 아이템은 스킵
-    }
-    jdbcTemplate.incrementor(new RunIdIncrementer());
-    // 처리 상태 업데이트
-    jdbcTemplate.update("UPDATE item_status SET status = 'PROCESSED' WHERE item_id = ?", item.getId());
-    return new OutputData(); // 아이템 처리 로직
-  }
-}
-
-```
-
-
-Job 실행 시마다 `UniqueRunIdIncrementer`를 사용해 고유한 ID를 생성하여 동일한 Job이 중복 실행되는 것을 막습니다.
-
-
-
-<br>
-
-### &nbsp;&nbsp; 2) **JobRepository 사용**
-
-
-**JobRepository**는 Job 실행 이력을 관리하며, 동일한 파라미터로 Job이 다시 실행되는 것을 방지합니다.
-
-
-
-```java
-@Configuration
-@EnableBatchProcessing
-public class BatchConfig extends DefaultBatchConfigurer {
-  @Override
-  protected JobRepository createJobRepository() throws Exception {
-    JobRepositoryFactoryBean factory = new JobRepositoryFactoryBean();
-    factory.setDataSource(dataSource);
-    factory.setTransactionManager(getTransactionManager());
-    factory.setIsolationLevelForCreate("ISOLATION_SERIALIZABLE");
-    factory.setTablePrefix("BATCH_");
-    factory.setMaxVarCharLength(1000);
-    return factory.getObject();
-  }
-}
-
-
-```
-
-<br>
-
-### &nbsp;&nbsp; 3) **트랜잭션 관리**
-
-각 청크 단위로 트랜잭션을 관리하며, 필요에 따라 트랜잭션 범위를 조정할 수 있습니다.
-
-```java
-@Configuration
-@EnableBatchProcessing
-public class BatchConfig {
-  @Autowired private StepBuilderFactory stepBuilderFactory;
-
-  @Bean
-  public Step sampleStep(PlatformTransactionManager transactionManager) {
-    return stepBuilderFactory.get("sampleStep")
-      .<InputData, OutputData>chunk(10)
-      .reader(itemReader())
-      .processor(itemProcessor())
-      .writer(itemWriter())
-      .transactionManager(transactionManager)
-      .build();
-  }
-
-  @Bean
-  public PlatformTransactionManager transactionManager() {
-    return new DataSourceTransactionManager(dataSource());
-  }
-}
-
-```
-
-  
-<br>
-
-### &nbsp;&nbsp; 4) **에러 처리 및 재시도 메커니즘**
-
-일시적 오류에 대해 재시도 로직을 구현하고, 영구적인 오류는 적절히 처리합니다.
-
-
-```java 
-@Bean
-public Step sampleStep() {
-  return stepBuilderFactory.get("sampleStep")
-    .<InputData, OutputData>chunk(10)
-    .reader(itemReader())
-    .processor(itemProcessor())
-    .writer(itemWriter())
-    .faultTolerant()
-    .retry(TemporaryNetworkException.class)
-    .retryLimit(3)
-    .skip(UnrecoverableException.class)
-    .skipLimit(5)
-    .listener(new StepExecutionListener() {
-      @Override
-      public void afterStep(StepExecution stepExecution) {
-        if (stepExecution.getStatus() == BatchStatus.FAILED) {
-          // 로그 기록 또는 알림 발송
-        }
-      }
-    })
-    .build();
-}
-
-```
-
-<br>
-
-### &nbsp;&nbsp; 5) **상태 추적**
-
-각 아이템의 처리 상태를 추적하여 중복 처리를 방지할 수 있습니다.
-
-
-
-```java
-public class StateTrackingItemProcessor implements ItemProcessor<InputData, OutputData> {
-  @Autowired 
-  private JdbcTemplate jdbcTemplate;
-
-  @Override
-  public OutputData process(InputData item) throws Exception {
-    String status = jdbcTemplate.queryForObject("SELECT status FROM item_status WHERE item_id = ?", String.class, item.getId());
-    if ("PROCESSED".equals(status)) {
-      return null;
-    }
-    jdbcTemplate.update("UPDATE item_status SET status = 'PROCESSED' WHERE item_id = ?", item.getId());
-    return new OutputData();
-  }
-}
-
-```
-
-
-
-<br>
-
-
----
-
-## &nbsp;&nbsp; 6) 제어할 수 없는 코드 처리
+## &nbsp;&nbsp; 1-1) 제어할 수 없는 코드 처리
 
 
 **LocalDate.now()** 와 같이 제어할 수 없는 코드는 사용하지 말고, 외부에서 값을 주입받도록 해야 합니다.
@@ -218,7 +58,73 @@ public JpaPagingItemReader<Product> reader(@Value("#{jobParameters[createDate]}"
 
 공휴일/주말/평일 마다 테스트 결과가 달라지게 될 수도 있습니다.
 
+<br>
 
+
+## &nbsp;&nbsp; 1-2) JobParameters 활용
+
+JobParameters를 활용하여 배치 작업이 고유하게 실행되도록 할 수 있습니다. 예를 들어, 작업 실행마다 날짜나 실행 ID와 같은 고유값을 파라미터로 전달하여, 이를 기반으로 작업이 수행되도록 설정할 수 있습니다.
+
+
+```java
+@Bean
+public Job processJob(JobBuilderFactory jobBuilderFactory, Step step) {
+    return jobBuilderFactory.get("processJob")
+            .incrementer(new RunIdIncrementer()) // 고유 run.id를 생성하여 작업마다 고유하게 만듦
+            .listener(listener())
+            .flow(step)
+            .end()
+            .build();
+}
+```
+
+여기서 RunIdIncrementer()는 각 실행마다 자동으로 증가하는 run.id를 JobParameters에 추가합니다. 이는 각 작업 실행을 구별하는 데 사용됩니다.
+
+
+
+## &nbsp;&nbsp; 2) 상태 확인을 통한 중복 작업 방지
+중복 처리를 방지하기 위해 상태를 확인하는 로직을 도입할 수 있습니다. 이는 특히 데이터가 이미 처리되었는지 확인하는 경우에 유용합니다.
+
+```java
+public void write(List<? extends Product> products) {
+    products.forEach(product -> {
+        if (!productRepository.existsByProductId(product.getProductId())) {
+            productRepository.save(product);
+        } else {
+            logger.info("Product already processed: {}", product.getProductId());
+        }
+    });
+}
+```
+
+
+<br>
+
+## &nbsp;&nbsp; 3) 재시도 로직의 멱등 구현
+
+재시도 로직을 구현할 때는 ItemProcessor에서 각 아이템의 처리 상태를 검사하여, 이미 처리된 항목은 건너뛰도록 할 수 있습니다. 이는 ItemProcessor에서 특정 조건에 따라 null을 반환함으로써 ItemWriter에서 해당 항목을 처리하지 않도록 하는 방법으로 구현될 수 있습니다.
+
+
+```java
+@Bean
+public ItemProcessor<Payment, Payment> idempotentProcessor() {
+  return new ItemProcessor<Payment, Payment>() {
+    @Override
+    public Payment process(Payment item) throws Exception {
+      if (paymentService.hasBeenProcessed(item.getTransactionId())) {
+        logger.info("Skipping processed transaction: {}", item.getTransactionId());
+        return null; 
+      }
+      return item; 
+    }
+  };
+}
+
+```
+
+이 프로세서는 이미 처리된 트랜잭션을 건너뛰게 하며, 이는 ItemWriter에서 더 이상 해당 아이템을 처리하지 않도록 합니다. 이러한 방식은 배치 작업의 효율을 높이고, 데이터 중복 입력을 방지하여 멱등성을 보장합니다.
+
+스프링 배치의 @StepScope를 사용하여 리더, 프로세서, 라이터가 각 배치 실행에 대해 적절한 컨텍스트에서 동작하도록 설정할 수도 있습니다. 이렇게 설정함으로써, 각 배치 실행은 독립적인 실행 컨텍스트에서 관리되어 멱등성을 보장받을 수 있습니다.
 
 
 <br>
