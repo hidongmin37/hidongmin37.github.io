@@ -22,7 +22,7 @@ public class RoutingDataSource extends AbstractRoutingDataSource {
 
 	@Override
 	protected Object determineCurrentLookupKey() {
-		boolean isReadOnly = TransactionSynchronizationManager.isCurrentTransactionReadOnly();
+		boolean isReadOnly = TransactionSynchronizationManager.isCurrentTransactionReadOnly(); // <--- 여기
 		String dataSourceType = isReadOnly ? "slave" : "master";
 		// log.info("데이터베이스: {}", dataSourceType);
 		MDC.put("datasource", dataSourceType);
@@ -36,307 +36,324 @@ public class RoutingDataSource extends AbstractRoutingDataSource {
 }
 
 ```
+
+
 <br>
 
-위 해당 코드를 살펴보게 되면 determineCurrentLookupKey()메서드를 오버라이딩하여 Master, Slave DataSource를 구분합니다. 이를 통해서 Master, Slave DataSource를 구분하여 사용할 수 있습니다.
+
+
+```java
+boolean isReadOnly = TransactionSynchronizationManager.isCurrentTransactionReadOnly(); 
+```
+
+<br>
+
+이 해당 코드에 대해서 서버를 시작하면서 부터 데이터베이스를 읽어오려고 하기 때문에 break point를 찍는다고 했을때, 바로 디버깅 시작 시에 바로 걸리게 됩니다. 따라서 저는 조건부 디버깅을 사용하여 해당 코드가 어떻게 동작하는지 살펴보았습니다.
+
+<br>
+
+
+```
+Arrays.stream(Thread.currentThread().getStackTrace()).anyMatch(e -> e.getMethodName().equals("findAllChargingHistories"))
+```
+
+해당 코드를 통해서 findAllChargingHistories 메소드가 호출되었을 때, 해당 코드가 동작하도록 하였습니다. findAllChargingHistories 메소드를 살펴보게 되면 아래와 같이 @Transactional(readOnly = true) 어노테이션이 붙어 있습니다.
+
+
+
+<br>
+
+```
+@Transactional(readOnly = true)
+	public PaymentSliceDto findAllChargingHistories(String email, Pageable pageable) {
+```
+
 
 <br>
 
 ---
 
-### 그렇다면 해당 코드에서 어노테이션만으로 어떻게 동작하는 것일까?
+### 그렇다면 해당 코드에서 어노테이션만으로 어떻게 동작하는 것일까요?
 <br>
 
-
-```
-TransactionSynchronizationManager.isCurrentTransactionReadOnly();
-```
-
-중요한 것은 해당 부분입니다. 차근차근 한번 살펴보도록 하겠습니다.
-
-<br>
-<br>
-
-① isCurrentTransactionReadOnly()를 클릭하여 들어가봅니다.
+조건부 디버깅을 통해서 들어가게 되면 아래와 같은 코드를 볼 수 있습니다.
 
 ```java
 public static boolean isCurrentTransactionReadOnly() {
 		return (currentTransactionReadOnly.get() != null);
 }
 ```
-해당 부분은 아래에서 자세하게 설명 드리겠습니다.
 
 <br>
+
+해당 코드를 살펴보게 되면 currentTransactionReadOnly.get() 메소드를 호출하게 됩니다. 이 메소드는 ThreadLocal 변수에 저장된 값을 반환합니다. 
+
+
 <br>
 
-② 다시 currentTransactionReadOnly.get()을 클릭하여 해당 부분을 들어가봅니다.
+
+
 
 ```java
-public T get() {
-  return get(Thread.currentThread());
+public abstract class TransactionSynchronizationManager {
+  private static final ThreadLocal<Map<Object, Object>> resources = new NamedThreadLocal("Transactional resources");
+  private static final ThreadLocal<Set<TransactionSynchronization>> synchronizations = new NamedThreadLocal("Transaction synchronizations");
+  private static final ThreadLocal<String> currentTransactionName = new NamedThreadLocal("Current transaction name");
+  private static final ThreadLocal<Boolean> currentTransactionReadOnly = new NamedThreadLocal("Current transaction read-only status");
+  private static final ThreadLocal<Integer> currentTransactionIsolationLevel = new NamedThreadLocal("Current transaction isolation level");
+  private static final ThreadLocal<Boolean> actualTransactionActive = new NamedThreadLocal("Actual transaction active");
+
+  //...
 }
 ```
-여기서 살펴보면 Thread.currentThread()는 현재 실행중인 스레드를 반환하는 메서드입니다. 즉, 현재 스레드의 ThreadLocalMap에서 현재 ThreadLocal 인스턴스에 해당하는 값을 찾아 반환합니다.
+
+<br>
+
+TransactionSynchronizationManager이라는 추상 클래스안에서  static 변수들을 확인해보면 currentTransactionReadOnly이 있음을 알 수 있습니다. 따라서 이 변수에 저장되어있는 값을 읽어오는 것 입니다. 
+
+
+
+그렇다면 어디서 이 값을 저장하고 있는 것일까요? 
+
+```java
+    public static void setCurrentTransactionReadOnly(boolean readOnly) {
+        currentTransactionReadOnly.set(readOnly ? Boolean.TRUE : null);
+    }
+
+```
+
+해당 메소드는 TransactionSynchronizationManager 클래스 안에 존재하며, setCurrentTransactionReadOnly 메소드를 통해서 값의 상태를 저장하고 있습니다.
+이 메소드를 다시 한번 조건부 디버깅을 통해서 살펴보겠습니다.
+
+
+<br>
+
 
 
 
 ```java
-private T get(Thread t) {
-    // 1. 현재 스레드의 ThreadLocalMap을 가져옵니다.
-    ThreadLocalMap map = getMap(t);
 
-    // 2. ThreadLocalMap이 존재하는 경우
-    if (map != null) {
-        // 3. 현재 ThreadLocal 인스턴스에 해당하는 Entry를 맵에서 찾습니다.
-        ThreadLocalMap.Entry e = map.getEntry(this);
+    // definition: "PROPAGATION_REQUIRED,ISOLATION_DEFAULT,readOnly"
+  protected void prepareSynchronization(DefaultTransactionStatus status, TransactionDefinition definition) {
+        if (status.isNewSynchronization()) {
+            TransactionSynchronizationManager.setActualTransactionActive(status.hasTransaction());
+            TransactionSynchronizationManager.setCurrentTransactionIsolationLevel(definition.getIsolationLevel() != -1 ? definition.getIsolationLevel() : null);
+            TransactionSynchronizationManager.setCurrentTransactionReadOnly(definition.isReadOnly());
+            TransactionSynchronizationManager.setCurrentTransactionName(definition.getName()); // <--- 여기  // definition: "PROPAGATION_REQUIRED,ISOLATION_DEFAULT,readOnly"
 
-        // 4. Entry가 존재하는 경우
-        if (e != null) {
-            // 5. Entry의 값을 반환합니다.
-            @SuppressWarnings("unchecked")
-            T result = (T) e.value;
-            return result;
+            TransactionSynchronizationManager.initSynchronization();
         }
+
     }
 
-    // 6. ThreadLocalMap이 없거나 Entry가 없는 경우, 초기값을 설정하고 반환합니다.
-    return setInitialValue(t);
-}
 ```
-1. 각 Thread는 자신만의 ThreadLocalMap을 가집니다.
-2. 하나의 ThreadLocalMap은 여러 ThreadLocal 인스턴스와 그에 대응하는 값들을 저장할 수 있습니다.
-3. 서로 다른 Thread는 같은 ThreadLocal 인스턴스에 대해 다른 값을 가질 수 있습니다.
-4. 각 Thread는 필요에 따라 여러 개의 ThreadLocal 변수를 사용할 수 있습니다.
-5. ThreadLocalMap은 ThreadLocal 변수에 대한 값을 저장하고 검색하는 데 사용됩니다.(멀티스레드 환경에서 스레드 안전성을 보장하면서도 효율적인 데이터 접근을 가능하게 합니다.)
-6. 최종적으로 get() 메서드는 현재 스레드의 ThreadLocalMap에서 현재 ThreadLocal 인스턴스에 해당하는 값을 찾아 반환합니다. 만약 값이 없는 경우 초기값을 설정하고 반환합니다.
+
+디버깅을 통해서 살펴보게 되면 prepareSynchronization 메소드를 통해서 TransactionSynchronizationManager 클래스의 setCurrentTransactionReadOnly 메소드를 호출하게 됩니다. 이 메소드를 통해서 값을 저장하게 됩니다.
+또한, 이 메소드는 스프링 프레임워크에서 트랜잭션 동기화를 준비하는 데 사용됩니다. 이 메소드는 TransactionSynchronizationManager를 통해 현재 트랜잭션에 대한 중요한 정보와 상태를 설정하는 역할을 합니다.
+
+
+특히 디버깅을 하게되면 definition: "PROPAGATION_REQUIRED,ISOLATION_DEFAULT,readOnly" 이라는 값을 가지고 있음을 확인할 수 있습니다. 이 값은 @Transactional(readOnly = true) 어노테이션을 통해서 설정된 값입니다. 
+
 
 
 <br>
 
+여기서 definition은 TransactionDefinition 인터페이스를 구현한 객체입니다. 이 인터페이스는 트랜잭션의 속성을 정의하는 데 사용됩니다. 이 인터페이스는 다음과 같은 메소드를 가지고 있습니다. 
 
 ```java
-private static final ThreadLocal<Boolean> currentTransactionReadOnly =
-  new NamedThreadLocal<>("Current transaction read-only status");
-```
-1. currentTransactionReadOnly.get()은 currentTransactionReadOnly 변수에 담겨져 있는 ThreadLocal 객체에서 현재 스레드에 대한 값을 가져옵니다.
 
-2. currentTransactionReadOnly 변수는 NamedThreadLocal 객체를 생성하여 사용하고 있습니다.
+public interface TransactionDefinition {
+int PROPAGATION_REQUIRED = 0;
+int PROPAGATION_SUPPORTS = 1;
+int PROPAGATION_MANDATORY = 2;
+int PROPAGATION_REQUIRES_NEW = 3;
+int PROPAGATION_NOT_SUPPORTED = 4;
+int PROPAGATION_NEVER = 5;
+int PROPAGATION_NESTED = 6;
+int ISOLATION_DEFAULT = -1;
+int ISOLATION_READ_UNCOMMITTED = 1;
+int ISOLATION_READ_COMMITTED = 2;
+int ISOLATION_REPEATABLE_READ = 4;
+int ISOLATION_SERIALIZABLE = 8;
+int TIMEOUT_DEFAULT = -1;
 
-3. NamedThreadLocal은 ThreadLocal을 상속받은 클래스로, ThreadLocal의 기능을 확장하여 이름을 지정할 수 있습니다.
+    default int getPropagationBehavior() {
+        return 0;
+    }
 
-4. 이 이름은 주로 디버깅 목적으로 사용되며, 실제로 ThreadLocalMap에서 값을 찾는 데 사용되지는 않습니다. ThreadLocalMap은 여전히 ThreadLocal 객체 자체를 키로 사용합니다.
+    default int getIsolationLevel() {
+        return -1;
+    }
 
-5. NamedThreadLocal에 부여된 이름 "Current transaction read-only status"는 이 ThreadLocal 변수의 목적을 설명하는 문자열일 뿐, 실제 저장되는 값이나 검색 키가 아닙니다.
+    default int getTimeout() {
+        return -1;
+    }
 
-6. 각 스레드는 이 ThreadLocal 변수를 통해 자신만의 Boolean 값(트랜잭션의 읽기 전용 상태)을 저장하고 검색할 수 있습니다.
+    default boolean isReadOnly() {
+        return false;
+    }
 
-<br>
-<br>
+    @Nullable
+    default String getName() {
+        return null;
+    }
 
-currentTransactionReadOnly이 속해 있는 클래스의 static 변수들을 확인해보면 아래와 같습니다.
-
-```java
-private static final ThreadLocal<Map<Object, Object>> resources =
-  new NamedThreadLocal<>("Transactional resources");
-
-private static final ThreadLocal<Set<TransactionSynchronization>> synchronizations =
-  new NamedThreadLocal<>("Transaction synchronizations");
-
-private static final ThreadLocal<String> currentTransactionName =
-  new NamedThreadLocal<>("Current transaction name");
-
-private static final ThreadLocal<Boolean> currentTransactionReadOnly =
-  new NamedThreadLocal<>("Current transaction read-only status");
-
-private static final ThreadLocal<Integer> currentTransactionIsolationLevel =
-  new NamedThreadLocal<>("Current transaction isolation level");
-
-private static final ThreadLocal<Boolean> actualTransactionActive =
-  new NamedThreadLocal<>("Actual transaction active");
-
-```
-
-
-@Transactional(readOnly = true) 어노테이션은 currentTransactionReadOnly 변수에 true 값을 저장합니다. 이는 현재 트랜잭션이 읽기 전용인지 아닌지를 나타내는 값입니다.
-
-```java
-public static void setCurrentTransactionReadOnly(boolean readOnly) {
-  currentTransactionReadOnly.set(readOnly ? Boolean.TRUE : null);
+    static TransactionDefinition withDefaults() {
+        return StaticTransactionDefinition.INSTANCE;
+    }
 }
 ```
 
-해당 부분을 좀 깊게 들어가 보면 setCurrentTransactionReadOnly과 같은 클래스(AbstractPlatformTransactionManager)의 메서드인 getTransaction을 살펴보면 아래와 같습니다.
+
+<br>
+
+
+그리고 다시 prepareSynchronization 메소드에서 step over를 하여 살펴보게 되면
+startTransaction에서 호출하는 것을 볼 수 있습니다. 
 
 ```java
 
-@Override
-public final TransactionStatus getTransaction(@Nullable TransactionDefinition definition)
-    throws TransactionException {
+private TransactionStatus startTransaction(TransactionDefinition definition, Object transaction, boolean nested, boolean debugEnabled, @Nullable SuspendedResourcesHolder suspendedResources) {
+        boolean newSynchronization = this.getTransactionSynchronization() != 2;
+        DefaultTransactionStatus status = this.newTransactionStatus(definition, transaction, true, newSynchronization, nested, debugEnabled, suspendedResources);
+        this.transactionExecutionListeners.forEach((listener) -> {
+            listener.beforeBegin(status);
+        });
 
-  TransactionDefinition def = (definition != null ? definition : TransactionDefinition.withDefaults());
+        try {
+            this.doBegin(transaction, definition);
+        } catch (Error | RuntimeException var9) {
+            Throwable ex = var9;
+            this.transactionExecutionListeners.forEach((listener) -> {
+                listener.afterBegin(status, ex);
+            });
+            throw ex;
+        }
 
-  Object transaction = doGetTransaction();
-  boolean debugEnabled = logger.isDebugEnabled();
+        this.prepareSynchronization(status, definition);
+        // definition: "PROPAGATION_REQUIRED,ISOLATION_DEFAULT,readOnly" status: DefaultTransactionStatus@6b3b3b7a
+        this.transactionExecutionListeners.forEach((listener) -> {
+            listener.afterBegin(status, (Throwable)null);
+        });
+        return status;
+    }
+```
 
-  if (isExistingTransaction(transaction)) {
-  
-    return handleExistingTransaction(def, transaction, debugEnabled);
-  }
 
-  if (def.getTimeout() < TransactionDefinition.TIMEOUT_DEFAULT) {
+startTransaction 메소드는 메소드 이름에서 알 수 있듯이 트랜잭션을 시작하는 과정에서 트랜잭션의 생명주기를 관리하며, 트랜잭션의 설정과 상태에 따라 적절한 동기화와 리소스 관리를 수행합니다. 
+
+
+<br>
+
+
+```
+  this.transactionExecutionListeners.forEach((listener) -> {
+  listener.afterBegin(status, (Throwable)null);
+  }); 
+```
+특히 startTransaction 메소드에서 transactionExecutionListeners는 트랜잭션 시작 후에 트랜잭션 리스너에게 트랜잭션 시작을 알리는 역할을 합니다. 이를 통해 트랜잭션 리스너는 트랜잭션의 상태를 감지하고 적절한 처리를 수행할 수 있습니다.
+
+<br>
+
+
+그리고 다시 step over하게 되면 
+
+```java
+public final TransactionStatus getTransaction(@Nullable TransactionDefinition definition) throws TransactionException {
+  TransactionDefinition def = definition != null ? definition : TransactionDefinition.withDefaults();
+  Object transaction = this.doGetTransaction();
+  boolean debugEnabled = this.logger.isDebugEnabled();
+  if (this.isExistingTransaction(transaction)) {
+    return this.handleExistingTransaction(def, transaction, debugEnabled);
+  } else if (def.getTimeout() < -1) {
     throw new InvalidTimeoutException("Invalid transaction timeout", def.getTimeout());
-  }
+  } else if (def.getPropagationBehavior() == 2) {
+    throw new IllegalTransactionStateException("No existing transaction found for transaction marked with propagation 'mandatory'");
+  } else if (def.getPropagationBehavior() != 0 && def.getPropagationBehavior() != 3 && def.getPropagationBehavior() != 6) {
+    if (def.getIsolationLevel() != -1 && this.logger.isWarnEnabled()) {
+      this.logger.warn("Custom isolation level specified but no actual transaction initiated; isolation level will effectively be ignored: " + def);
+    }
 
-  if (def.getPropagationBehavior() == TransactionDefinition.PROPAGATION_MANDATORY) {
-    throw new IllegalTransactionStateException(
-        "No existing transaction found for transaction marked with propagation 'mandatory'");
-  }
-  else if (def.getPropagationBehavior() == TransactionDefinition.PROPAGATION_REQUIRED ||
-      def.getPropagationBehavior() == TransactionDefinition.PROPAGATION_REQUIRES_NEW ||
-      def.getPropagationBehavior() == TransactionDefinition.PROPAGATION_NESTED) {
-    SuspendedResourcesHolder suspendedResources = suspend(null);
+    boolean newSynchronization = this.getTransactionSynchronization() == 0;
+    return this.prepareTransactionStatus(def, (Object)null, true, newSynchronization, debugEnabled, (Object)null);
+  } else {
+    SuspendedResourcesHolder suspendedResources = this.suspend((Object)null);
     if (debugEnabled) {
-      logger.debug("Creating new transaction with name [" + def.getName() + "]: " + def);
+      Log var10000 = this.logger;
+      String var10001 = def.getName();
+      var10000.debug("Creating new transaction with name [" + var10001 + "]: " + def);
     }
+
     try {
-      return startTransaction(def, transaction, false, debugEnabled, suspendedResources); // <== 트랜잭션 시작
-    }
-    catch (RuntimeException | Error ex) {
-      resume(null, suspendedResources);
+      return this.startTransaction(def, transaction, false, debugEnabled, suspendedResources); // <== 트랜잭션 시작
+    } catch (Error | RuntimeException var7) {
+      Throwable ex = var7;
+      this.resume((Object)null, suspendedResources);
       throw ex;
     }
   }
-  else {
+}
+```
+이 메소드 안에서 startTransaction 메소드를 호출하게 됩니다.  getTransaction 메소드는 트랜잭션의 존재 여부, 타임아웃, 전파 동작, 격리 수준 등을 확인하고 필요한 경우 새 트랜잭션을 생성합니다.
 
-    if (def.getIsolationLevel() != TransactionDefinition.ISOLATION_DEFAULT && logger.isWarnEnabled()) {
-      logger.warn("Custom isolation level specified but no actual transaction initiated; " +
-          "isolation level will effectively be ignored: " + def);
+
+<br>
+
+그리고 다시 step over하게 되면 
+```java
+
+protected TransactionInfo createTransactionIfNecessary(@Nullable PlatformTransactionManager tm, @Nullable TransactionAttribute txAttr, final String joinpointIdentification) {
+        if (txAttr != null && ((TransactionAttribute)txAttr).getName() == null) {
+            txAttr = new DelegatingTransactionAttribute((TransactionAttribute)txAttr) {
+                public String getName() {
+                    return joinpointIdentification;
+                }
+            };
+        }
+
+        TransactionStatus status = null;
+        if (txAttr != null) {
+            if (tm != null) {
+                status = tm.getTransaction((TransactionDefinition)txAttr);
+            } else if (this.logger.isDebugEnabled()) {
+                this.logger.debug("Skipping transactional joinpoint [" + joinpointIdentification + "] because no transaction manager has been configured");
+            }
+        }
+
+        return this.prepareTransactionInfo(tm, (TransactionAttribute)txAttr, joinpointIdentification, status);
     }
-    boolean newSynchronization = (getTransactionSynchronization() == SYNCHRONIZATION_ALWAYS);
-    return prepareTransactionStatus(def, null, true, newSynchronization, debugEnabled, null);
-  }
-}
 ```
-해당 메소드를 통해서 트랜잭션을 가져오게 되면, startTransaction() 메서드를 호출합니다.
-특히 여기에 파라미터를 살펴보면 TransactionDefinition 이 있는데, 이는 트랜잭션의 정의를 나타내는 객체입니다. 이를 살펴보면 
 
 
 ```java
-public interface TransactionDefinition {
+ protected TransactionInfo prepareTransactionInfo(@Nullable PlatformTransactionManager tm, @Nullable TransactionAttribute txAttr, String joinpointIdentification, @Nullable TransactionStatus status) {
+        TransactionInfo txInfo = new TransactionInfo(tm, txAttr, joinpointIdentification); // <== TransactionInfo 객체 생성 
+  // joinpointIdentification: "execution(void com.example.demo.service.UserService.findAllChargingHistories())"
   
-  // 다른 상수들 생략
+  // tm JPATransactionManager@7b3b3b7a
+  // txAttr: PROPAGATION_REQUIRED,ISOLATION_DEFAULT,readOnly
+        if (txAttr != null) {
+            if (this.logger.isTraceEnabled()) {
+                this.logger.trace("Getting transaction for [" + txInfo.getJoinpointIdentification() + "]");
+            }
 
-	default int getPropagationBehavior() {
-		return PROPAGATION_REQUIRED;
-	}
+            txInfo.newTransactionStatus(status);
+        } else if (this.logger.isTraceEnabled()) {
+            this.logger.trace("No need to create transaction for [" + joinpointIdentification + "]: This method is not transactional.");
+        }
 
-	
-	default int getIsolationLevel() {
-		return ISOLATION_DEFAULT;
-	}
-
-	default int getTimeout() {
-		return TIMEOUT_DEFAULT;
-	}
-
-	
-	default boolean isReadOnly() {
-		return false;
-	}
-
-	@Nullable
-	default String getName() {
-		return null;
-	}
-
-
-	static TransactionDefinition withDefaults() {
-		return StaticTransactionDefinition.INSTANCE;
-	}
-
-}
-
+        txInfo.bindToThread();
+        return txInfo;
+    }
 ```
-TransactionDefinition 인터페이스는 트랜잭션의 정의를 나타내는 객체로, 트랜잭션의 propagation, isolation, timeout, read-only, name 등의 속성을 가집니다.
-기본적으로 definition.isReadOnly()는 false를 반환합니다.
 
+prepareTransactionInfo 메소드를 호출하게 됩니다.prepareTransactionInfo 메소드에서 트랜잭션 정보 객체가 생성되고 스레드에 바인딩됩니다. 
 
-```java
-
-private TransactionStatus startTransaction(TransactionDefinition definition, Object transaction,
-  boolean nested, boolean debugEnabled, @Nullable SuspendedResourcesHolder suspendedResources) {
-
-  boolean newSynchronization = (getTransactionSynchronization() != SYNCHRONIZATION_NEVER);
-  DefaultTransactionStatus status = newTransactionStatus(
-    definition, transaction, true, newSynchronization, nested, debugEnabled, suspendedResources);
-  this.transactionExecutionListeners.forEach(listener -> listener.beforeBegin(status));
-  try {
-    doBegin(transaction, definition);
-  }
-  catch (RuntimeException | Error ex) {
-    this.transactionExecutionListeners.forEach(listener -> listener.afterBegin(status, ex));
-    throw ex;
-  }
-  prepareSynchronization(status, definition);
-  this.transactionExecutionListeners.forEach(listener -> listener.afterBegin(status, null));
-  return status;
-}
-```
-startTransaction() 메서드에서는 트랜잭션을 시작하고, 트랜잭션 상태를 나타내는 DefaultTransactionStatus 객체를 생성합니다. 
-
-
-```java
-protected void prepareSynchronization(DefaultTransactionStatus status, TransactionDefinition definition) {
-  if (status.isNewSynchronization()) {
-    TransactionSynchronizationManager.setActualTransactionActive(status.hasTransaction());
-    TransactionSynchronizationManager.setCurrentTransactionIsolationLevel(
-      definition.getIsolationLevel() != TransactionDefinition.ISOLATION_DEFAULT ?
-        definition.getIsolationLevel() : null);
-    TransactionSynchronizationManager.setCurrentTransactionReadOnly(definition.isReadOnly()); // <--- 여기
-    TransactionSynchronizationManager.setCurrentTransactionName(definition.getName());
-    TransactionSynchronizationManager.initSynchronization();
-  }
-}
-```
-그리고 prepareSynchronization() 메서드에서 setCurrentTransactionReadOnly() 메서드를 호출하여 현재 트랜잭션의 읽기 전용 상태를 설정합니다.
-
-@Transactional(readOnly = true)로 설정된 경우, Spring은 이 정보를 사용하여 TransactionDefinition 구현체를 생성하고, 이 구현체의 isReadOnly() 메소드는 true를 반환하게 됩니다. 그리고 이 정보는 트랜잭션을 시작할 때 TransactionSynchronizationManager에 저장됩니다.
-
-
-```java
-public static boolean isCurrentTransactionReadOnly() {
-  return (currentTransactionReadOnly.get() != null);
-}
-```
-그 후에 isCurrentTransactionReadOnly() 메서드를 호출하여 현재 트랜잭션이 읽기 전용인지 아닌지를 반환합니다.
-
-----
 
 <br>
-<br>
-
-### 마치며
-이렇게 Spring Framework에서 Master/Slave 데이터베이스 라우팅이 어떻게 @Transactional(readOnly = true) 어노테이션과 연계되어 동작하는지 살펴보았습니다.
-
-과정을 살펴보면 다음과 같습니다.
-1. RoutingDataSource 클래스는 AbstractRoutingDataSource를 확장하여 Master와 Slave 데이터소스를 동적으로 선택합니다.
-   <br>
-   <br>
-2. 라우팅 결정은 TransactionSynchronizationManager.isCurrentTransactionReadOnly() 메소드의 반환값을 기반으로 이루어집니다.
-   <br>
-   <br>
-3. @Transactional(readOnly = true) 어노테이션은 Spring의 트랜잭션 관리 시스템에 의해 처리되며, 이 정보는 TransactionDefinition 객체를 통해 전달됩니다.
-   <br>
-   <br>
-4. 트랜잭션 시작 시 AbstractPlatformTransactionManager의 getTransaction 메소드가 호출되고, 이어서 startTransaction과 prepareSynchronization 메소드가 실행됩니다.
-   <br>
-   <br>
-5. prepareSynchronization 메소드에서 TransactionSynchronizationManager.setCurrentTransactionReadOnly()가 호출되어 트랜잭션의 읽기 전용 상태가 ThreadLocal 변수에 저장됩니다.
-    <br>
-    <br>
-6. isCurrentTransactionReadOnly() 메소드는 이 ThreadLocal 변수의 값을 확인하여 현재 트랜잭션이 읽기 전용인지 여부를 반환합니다.
 
 
+## 결론
 
-이러한 메커니즘을 통해 Spring은 애플리케이션 코드의 변경 없이도 트랜잭션의 특성에 따라 적절한 데이터베이스(Master 또는 Slave)로 요청을 라우팅할 수 있습니다. 이는 데이터베이스 부하 분산과 읽기 성능 최적화에 큰 도움이 됩니다.
-개발자는 단순히 @Transactional(readOnly = true)를 사용함으로써 읽기 전용 작업을 Slave 데이터베이스로 자동 라우팅할 수 있으며, 이는 코드의 가독성과 유지보수성을 높이는 동시에 시스템의 확장성을 개선하는 데 기여합니다.
+이렇게 어노테이션만으로도 master, slave를 구분할 수 있습니다. 이는 스프링 프레임워크에서 제공하는 @Transactional(readOnly = true) 어노테이션을 통해 트랜잭션의 속성을 설정하고, 트랜잭션 동기화를 준비하는 과정에서 트랜잭션의 속성을 확인하고, 이를 통해 master, slave 데이터베이스를 구분할 수 있습니다. 이를 통해 스프링 프레임워크에서 제공하는 트랜잭션 관리 기능을 활용하여 데이터베이스 라우팅을 구현할 수 있습니다. 
+
