@@ -6,6 +6,8 @@ categories:
   - posts
 tags:
   - kafka
+  - offset
+  - commit
   - coding
 ---
 
