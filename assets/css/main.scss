@@ -8,6 +8,10 @@
 @import "minimal-mistakes"; // main partials
 
 
+body {
+  cursor: url('/assets/favicon/coco2.png.png'), auto;
+}
+
 .category-list {
   list-style-type: none;
   padding: 0;
