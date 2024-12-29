@@ -16,9 +16,9 @@ title_separator          : "-"
 subtitle                 : "시바견 코코를 키우는 개발자입니다 ·ᴗ·"
 name                     : &name "장동민(張同暋)" # &name is a YAML anchor which can be *referenced later
 description              : &description "공부하면서 시바견을 키우는 개발자의 블로그입니다."
-url                      : "https://dongminjang24.github.io" # the base hostname & protocol for your site e.g. "https://mmistakes.github.io"
+url                      : "https://hidongmin37.github.io" # the base hostname & protocol for your site e.g. "https://mmistakes.github.io"
 # baseurl                  : "/dongmin-log" # the subpath of your site, e.g. "/blog"
-# repository               : "dongminjang24/dongminjang24.github.io"
+# repository               : "hidongmin37/hidongmin37.github.io"
 teaser                   : # path of fallback teaser image, e.g. "/assets/images/500x300.png"
 logo                     : # path of logo image to display in the masthead, e.g. "/assets/images/88x88.png"
 masthead_title           : # overrides the website title displayed in the masthead, use " " for no title
@@ -28,7 +28,7 @@ enable_copy_code_button  : true
 comments:
   provider               : "disqus" # false (default), "disqus", "discourse", "facebook", "staticman_v2", "staticman", "utterances", "giscus", "custom"
   disqus:
-    shortname            : dongminjang24 # Your Disqus shortname
+    shortname            : hidongmin37 # Your Disqus shortname
   discourse:
     server               : # https://meta.discourse.org/t/embedding-discourse-comments-via-javascript/31963 , e.g.: meta.discourse.org
 #  facebook:
@@ -104,7 +104,7 @@ author:
   links:
     - label: "GitHub"
       icon: "fab fa-fw fa-github"
-      url: "https://github.com/dongminjang24"
+      url: "https://github.com/hidongmin37"
     - label: "Notion"
       icon: "fas fa-fw fa-link"  # 노션 전용 아이콘이 없어서 일반 링크 아이콘 사용
       url: "https://bit.ly/3MEGQ0q"
@@ -115,7 +115,7 @@ footer:
   links:
     - label: "GitHub"
       icon: "fab fa-fw fa-github"
-      url: "https://github.com/dongminjang24"
+      url: "https://github.com/hidongmin37"
 
 
 
@@ -324,4 +324,4 @@ compress_html:
 
 favicon: "/assets/favicon/coco2.png.png"
 
-img_cdn: https://cdn.jsdelivr.net/gh/dongminjang24/dongminjang24.github.io@main
+img_cdn: https://cdn.jsdelivr.net/gh/hidongmin37/hidongmin37.github.io@main
