@@ -1,5 +1,5 @@
 ---
-title: 실무에서 만났던 이슈들 모아보기
+title: 실무에서 만났던 이슈들 모아보기 - JPA 편
 date: 2025-06-02
 comments: true
 categories:
