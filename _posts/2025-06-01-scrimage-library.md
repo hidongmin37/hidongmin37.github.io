@@ -1,6 +1,6 @@
 ---
 title: Docker 환경에서 Scrimage WebP 변환 이슈 해결하기
-date: 2025-04-01
+date: 2025-06-01
 comments: true
 categories:
   - issues
