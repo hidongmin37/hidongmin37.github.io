@@ -105,6 +105,16 @@ XCLAIM mystream mygroup worker-2 60000 1697041234567-0
 
 ## 3. 운영에서 알아야할 핵심 구조
 
+Stream (메시지 로그)
+
+└── Consumer Group
+
+├── Consumer-1 (워커)
+
+├── Consumer-2 (워커)
+
+└── Pending List (미처리 메시지 큐)
+
 ### 자동 병렬 처리
 워커를 늘리면 Redis가 메시지를 자동으로 라운드로빈 분배해준다.
 
